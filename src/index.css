@@ -1,0 +1,156 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 220 14% 5%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 14% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 14% 5%;
+
+    --primary: 220 14% 5%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 9% 94%;
+    --secondary-foreground: 220 14% 5%;
+
+    --muted: 220 9% 94%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 220 9% 94%;
+    --accent-foreground: 220 14% 5%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 220 14% 5%;
+
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    letter-spacing: -0.01em;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans tracking-tight;
+  }
+
+  h1 {
+    @apply text-4xl font-medium md:text-5xl lg:text-6xl;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    @apply text-3xl font-medium md:text-4xl;
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    @apply text-2xl font-medium;
+    letter-spacing: -0.015em;
+  }
+
+  h4 {
+    @apply text-xl font-medium;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    @apply leading-relaxed text-muted-foreground;
+  }
+
+  section {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-secondary;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full transition-colors;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+
+  /* Custom selection */
+  ::selection {
+    @apply bg-food-accent/20 text-food-accent;
+  }
+
+  /* Image gallery effects */
+  .image-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+  }
+
+  .image-hover {
+    @apply transform transition-transform duration-500 hover:scale-[1.02];
+  }
+
+  /* Animation utilities */
+  .animate-delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .animate-delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .animate-delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .animate-delay-400 {
+    animation-delay: 400ms;
+  }
+  
+  .animate-delay-500 {
+    animation-delay: 500ms;
+  }
+
+  /* Glass morphism utility */
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  .glass-dark {
+    @apply bg-food-neutral/80 backdrop-blur-md border border-food-neutral/20;
+  }
+
+  /* Custom loading shimmer */
+  .loading-shimmer {
+    @apply bg-gradient-to-r from-transparent via-gray-200 to-transparent bg-[length:200%_100%] animate-shimmer;
+  }
+}
