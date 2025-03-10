@@ -1,8 +1,10 @@
 import express from 'express';
 import { authenticateToken, isAdmin } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
+import multer from 'multer';
 
 const router = express.Router();
+const upload = multer();
 
 // Apply authentication and admin middleware to all routes
 router.use(authenticateToken, isAdmin);
@@ -154,31 +156,66 @@ router.get('/products', async (req, res) => {
     }
 });
 
-// Add new product
-router.post('/products', async (req, res) => {
+// Create a new product
+router.post('/products', upload.single('image'), async (req, res) => {
     try {
-        const { name, description, price, category, stock_quantity, image_url } = req.body;
+        const { name, description, price, category, isAvailable, isPreOrder } = req.body;
+        const imageFile = req.file;
 
-        const { data: product, error } = await supabaseAdmin
+        // Upload image to Supabase Storage
+        let imageUrl = null;
+        if (imageFile) {
+            const fileExt = imageFile.originalname.split('.').pop();
+            const fileName = `${Date.now()}.${fileExt}`;
+            const filePath = `products/${fileName}`;
+
+            const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+                .from('products')
+                .upload(filePath, imageFile.buffer, {
+                    contentType: imageFile.mimetype,
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                console.error('Error uploading image:', uploadError);
+                return res.status(500).json({ error: 'Failed to upload image' });
+            }
+
+            // Get the public URL for the uploaded image
+            const { data: { publicUrl } } = supabaseAdmin.storage
+                .from('products')
+                .getPublicUrl(filePath);
+
+            imageUrl = publicUrl;
+        }
+
+        // Create product in database
+        const { data, error } = await supabaseAdmin
             .from('products')
             .insert([
                 {
                     name,
                     description,
-                    price,
+                    price: parseFloat(price),
                     category,
-                    stock_quantity,
-                    image_url
+                    image_url: imageUrl,
+                    is_available: isAvailable === 'true',
+                    is_pre_order: isPreOrder === 'true'
                 }
             ])
             .select()
             .single();
 
-        if (error) throw error;
-        res.status(201).json(product);
+        if (error) {
+            console.error('Error creating product:', error);
+            return res.status(500).json({ error: 'Failed to create product' });
+        }
+
+        res.status(201).json(data);
     } catch (error) {
-        console.error('Error creating product:', error);
-        res.status(500).json({ error: 'Failed to create product' });
+        console.error('Error in product creation:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

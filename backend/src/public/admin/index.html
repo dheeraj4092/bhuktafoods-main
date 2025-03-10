@@ -202,34 +202,43 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="addProductForm">
+                    <form id="addProductForm" onsubmit="addProduct(event)" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label class="form-label">Name</label>
-                            <input type="text" class="form-control" name="name" required>
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea class="form-control" name="description" required></textarea>
+                            <label for="description" class="form-label">Description</label>
+                            <textarea class="form-control" id="description" name="description" required></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Price</label>
-                            <input type="number" class="form-control" name="price" step="0.01" required>
+                            <label for="price" class="form-label">Price</label>
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <select class="form-select" name="category" required>
+                            <label for="category" class="form-label">Category</label>
+                            <select class="form-control" id="category" name="category" required>
                                 <option value="snacks">Snacks</option>
                                 <option value="fresh">Fresh</option>
                             </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Stock Quantity</label>
-                            <input type="number" class="form-control" name="stock_quantity" required>
+                            <label for="image" class="form-label">Product Image</label>
+                            <input type="file" class="form-control" id="image" name="image" accept="image/*" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Image URL</label>
-                            <input type="url" class="form-control" name="image_url">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="isAvailable" name="isAvailable" value="true" checked>
+                                <label class="form-check-label" for="isAvailable">Available</label>
+                            </div>
                         </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="isPreOrder" name="isPreOrder" value="true">
+                                <label class="form-check-label" for="isPreOrder">Pre-order</label>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Add Product</button>
                     </form>
                 </div>
                 <div class="modal-footer">

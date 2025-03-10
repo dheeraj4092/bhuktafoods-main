@@ -223,49 +223,37 @@ async function addUser() {
 }
 
 // Add new product
-async function addProduct() {
-    const form = document.getElementById('addProductForm');
+async function addProduct(event) {
+    event.preventDefault();
+    
+    const form = event.target;
     const formData = new FormData(form);
     
     try {
-        // Convert form data to JSON
-        const productData = {
-            name: formData.get('name'),
-            description: formData.get('description'),
-            price: parseFloat(formData.get('price')),
-            category: formData.get('category'),
-            stock_quantity: parseInt(formData.get('stock_quantity')),
-            image_url: formData.get('image_url') || null
-        };
-
-        console.log('Sending product data:', productData);
-
         const response = await fetch('/api/admin/products', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(productData)
+            body: formData
         });
-        
+
         if (!response.ok) {
             const error = await response.json();
-            console.error('Server error:', error);
-            throw new Error(error.error || 'Failed to add product');
+            throw new Error(error.message || 'Failed to add product');
         }
+
+        const product = await response.json();
+        console.log('Product added successfully:', product);
         
-        const result = await response.json();
-        console.log('Product created:', result);
-        
-        const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
-        modal.hide();
+        // Reset form
         form.reset();
+        
+        // Show success message
+        showMessage('Product added successfully!', 'success');
+        
+        // Reload products table
         loadProducts();
-        showSuccess('Product added successfully');
     } catch (error) {
         console.error('Error adding product:', error);
-        showError(error.message || 'Failed to add product');
+        showMessage(error.message || 'Failed to add product', 'error');
     }
 }
 
