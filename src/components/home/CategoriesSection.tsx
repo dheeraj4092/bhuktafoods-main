@@ -16,7 +16,7 @@ const CategoriesSection = () => {
           <CategoryCard 
             title="Traditional Snacks"
             description="Authentic homemade snacks prepared with age-old family recipes, available for nationwide and international shipping."
-            image="src/images/popular-indian-snacks-list.webp"
+            image="https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//popular-indian-snacks-list.webp"
             link="/products?category=snacks"
             colorAccent="food-snack"
           />

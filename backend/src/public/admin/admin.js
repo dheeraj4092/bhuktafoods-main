@@ -230,21 +230,31 @@ async function addProduct(event) {
     const formData = new FormData(form);
     
     try {
+        // Show loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Uploading...';
+
         const response = await fetch('/api/admin/products', {
             method: 'POST',
             body: formData
         });
 
+        const result = await response.json();
+
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.message || 'Failed to add product');
+            throw new Error(result.error || 'Failed to add product');
         }
 
-        const product = await response.json();
-        console.log('Product added successfully:', product);
+        console.log('Product added successfully:', result);
         
         // Reset form
         form.reset();
+        
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addProductModal'));
+        modal.hide();
         
         // Show success message
         showMessage('Product added successfully!', 'success');
@@ -254,7 +264,29 @@ async function addProduct(event) {
     } catch (error) {
         console.error('Error adding product:', error);
         showMessage(error.message || 'Failed to add product', 'error');
+    } finally {
+        // Reset button state
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Add Product';
     }
+}
+
+// Show message function
+function showMessage(message, type = 'success') {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed top-0 end-0 m-3`;
+    alertDiv.style.zIndex = '9999';
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alertDiv);
+    
+    // Auto dismiss after 5 seconds
+    setTimeout(() => {
+        alertDiv.remove();
+    }, 5000);
 }
 
 // Utility functions

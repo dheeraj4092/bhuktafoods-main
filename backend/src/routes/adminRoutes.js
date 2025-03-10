@@ -162,33 +162,52 @@ router.post('/products', upload.single('image'), async (req, res) => {
         const { name, description, price, category, isAvailable, isPreOrder } = req.body;
         const imageFile = req.file;
 
+        if (!imageFile) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+
+        console.log('Received image file:', {
+            filename: imageFile.originalname,
+            mimetype: imageFile.mimetype,
+            size: imageFile.size
+        });
+
         // Upload image to Supabase Storage
         let imageUrl = null;
-        if (imageFile) {
-            const fileExt = imageFile.originalname.split('.').pop();
-            const fileName = `${Date.now()}.${fileExt}`;
-            const filePath = `products/${fileName}`;
+        const fileExt = imageFile.originalname.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `products/${fileName}`;
 
-            const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-                .from('products')
-                .upload(filePath, imageFile.buffer, {
-                    contentType: imageFile.mimetype,
-                    cacheControl: '3600',
-                    upsert: false
-                });
+        console.log('Uploading to Supabase Storage:', {
+            bucket: 'products',
+            path: filePath
+        });
 
-            if (uploadError) {
-                console.error('Error uploading image:', uploadError);
-                return res.status(500).json({ error: 'Failed to upload image' });
-            }
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+            .from('products')
+            .upload(filePath, imageFile.buffer, {
+                contentType: imageFile.mimetype,
+                cacheControl: '3600',
+                upsert: false
+            });
 
-            // Get the public URL for the uploaded image
-            const { data: { publicUrl } } = supabaseAdmin.storage
-                .from('products')
-                .getPublicUrl(filePath);
-
-            imageUrl = publicUrl;
+        if (uploadError) {
+            console.error('Error uploading image:', uploadError);
+            return res.status(500).json({ 
+                error: 'Failed to upload image',
+                details: uploadError.message 
+            });
         }
+
+        console.log('Image uploaded successfully:', uploadData);
+
+        // Get the public URL for the uploaded image
+        const { data: { publicUrl } } = supabaseAdmin.storage
+            .from('products')
+            .getPublicUrl(filePath);
+
+        imageUrl = publicUrl;
+        console.log('Generated public URL:', imageUrl);
 
         // Create product in database
         const { data, error } = await supabaseAdmin
@@ -209,13 +228,20 @@ router.post('/products', upload.single('image'), async (req, res) => {
 
         if (error) {
             console.error('Error creating product:', error);
-            return res.status(500).json({ error: 'Failed to create product' });
+            return res.status(500).json({ 
+                error: 'Failed to create product',
+                details: error.message 
+            });
         }
 
+        console.log('Product created successfully:', data);
         res.status(201).json(data);
     } catch (error) {
         console.error('Error in product creation:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        res.status(500).json({ 
+            error: 'Internal server error',
+            details: error.message 
+        });
     }
 });
 

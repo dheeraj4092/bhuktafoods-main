@@ -46,14 +46,14 @@ const HeroSection = () => {
           <div className={`w-full lg:w-1/2 relative ${isLoaded ? 'animate-fade-in animate-delay-300' : 'opacity-0'}`}>
             <div className="aspect-square relative rounded-3xl overflow-hidden shadow-2xl transform lg:rotate-2">
               <img 
-                src="src/images/logo.jpeg" 
+                src="https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//logo.png" 
                 alt="Traditional Indian Snack" 
                 className="w-full h-full object-cover"
               />
             </div>
             <div className="absolute -bottom-6 -left-6 w-32 h-32 rounded-2xl overflow-hidden shadow-xl transform -rotate-6 hidden lg:block animate-float">
               <img 
-                src="src/images/indian-old-woman-making-cooking-260nw-2197321177.webp" 
+                src="https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//indian-old-woman-making-cooking-260nw-2197321177.webp" 
                 alt="Fresh fruits" 
                 className="w-full h-full object-cover"
               />
