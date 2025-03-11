@@ -138,7 +138,9 @@ export const createProduct = async (req, res) => {
       description,
       price,
       category,
-      stock_quantity
+      stock_quantity,
+      isAvailable,
+      isPreOrder
     } = req.body;
 
     // Handle image upload
@@ -147,10 +149,10 @@ export const createProduct = async (req, res) => {
       // Upload image to Supabase Storage
       const fileExt = path.extname(req.file.originalname);
       const fileName = `${uuidv4()}${fileExt}`;
-      const filePath = `products/${fileName}`;
+      const filePath = `product-images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('products')
+        .from('product-images')
         .upload(filePath, req.file.buffer, {
           contentType: req.file.mimetype
         });
@@ -159,7 +161,7 @@ export const createProduct = async (req, res) => {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('products')
+        .from('product-images')
         .getPublicUrl(filePath);
 
       image_url = publicUrl;
@@ -174,7 +176,9 @@ export const createProduct = async (req, res) => {
           price,
           category,
           stock_quantity,
-          image_url
+          image_url,
+          is_available: isAvailable === 'true',
+          is_pre_order: isPreOrder === 'true'
         }
       ])
       .select()
@@ -207,10 +211,10 @@ export const updateProduct = async (req, res) => {
       // Upload image to Supabase Storage
       const fileExt = path.extname(req.file.originalname);
       const fileName = `${uuidv4()}${fileExt}`;
-      const filePath = `products/${fileName}`;
+      const filePath = `product-images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('products')
+        .from('product-images')
         .upload(filePath, req.file.buffer, {
           contentType: req.file.mimetype
         });
@@ -219,7 +223,7 @@ export const updateProduct = async (req, res) => {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('products')
+        .from('product-images')
         .getPublicUrl(filePath);
 
       image_url = publicUrl;
@@ -279,7 +283,7 @@ export const deleteProduct = async (req, res) => {
     if (product.image_url) {
       const filePath = product.image_url.split('/').pop();
       const { error: storageError } = await supabase.storage
-        .from('products')
+        .from('product-images')
         .remove([filePath]);
 
       if (storageError) {

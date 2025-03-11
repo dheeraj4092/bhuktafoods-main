@@ -3,10 +3,6 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
 if (!process.env.SUPABASE_URL) {
   throw new Error('SUPABASE_URL is required');
 }
@@ -19,10 +15,22 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
 }
 
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is required');
+}
+
 // Regular client for user operations
 export const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
+  process.env.SUPABASE_ANON_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+      jwtSecret: process.env.JWT_SECRET
+    }
+  }
 );
 
 // Admin client for administrative operations
@@ -32,17 +40,18 @@ export const supabaseAdmin = createClient(
   {
     auth: {
       autoRefreshToken: false,
-      persistSession: false
+      persistSession: false,
+      jwtSecret: process.env.JWT_SECRET
     }
   }
 );
 
 // Database table names
 export const TABLES = {
+  PROFILES: 'profiles',
   PRODUCTS: 'products',
-  USERS: 'users',
   ORDERS: 'orders',
   ORDER_ITEMS: 'order_items',
-  RATINGS: 'ratings',
-  WISHLISTS: 'wishlists'
+  SUBSCRIPTIONS: 'subscriptions',
+  USER_SUBSCRIPTIONS: 'user_subscriptions'
 }; 

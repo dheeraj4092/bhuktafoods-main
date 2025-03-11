@@ -23,6 +23,7 @@ function initializeDashboard() {
     loadUsers();
     loadProducts();
     loadOrders();
+    loadSubscriptions();
 }
 
 // Set up navigation
@@ -182,6 +183,131 @@ async function loadOrders() {
     }
 }
 
+// Load subscriptions
+async function loadSubscriptions() {
+    try {
+        const response = await fetch('/api/subscriptions', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const subscriptions = await response.json();
+        
+        const tableBody = document.getElementById('subscriptions-table-body');
+        tableBody.innerHTML = '';
+        
+        subscriptions.forEach(subscription => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${subscription.id}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        ${subscription.image_url ? 
+                            `<img src="${subscription.image_url}" alt="${subscription.name}" class="me-2" style="width: 40px; height: 40px; object-fit: cover; border-radius: 4px;">` : 
+                            '<div class="me-2" style="width: 40px; height: 40px; background-color: #e9ecef; border-radius: 4px;"></div>'
+                        }
+                        <a href="#" class="subscription-name-link" data-subscription-id="${subscription.id}">${subscription.name}</a>
+                    </div>
+                </td>
+                <td>$${subscription.price}</td>
+                <td>${subscription.duration_days}</td>
+                <td>
+                    <span class="badge ${subscription.is_active ? 'bg-success' : 'bg-danger'}">
+                        ${subscription.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-primary me-1" onclick="editSubscription('${subscription.id}')">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteSubscription('${subscription.id}')">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            
+            // Add click event for the subscription name
+            const nameLink = row.querySelector('.subscription-name-link');
+            nameLink.addEventListener('click', (e) => {
+                e.preventDefault();
+                showSubscriptionDetail(subscription.id);
+            });
+            
+            tableBody.appendChild(row);
+        });
+    } catch (error) {
+        console.error('Error loading subscriptions:', error);
+        showMessage('Failed to load subscriptions', 'danger');
+    }
+}
+
+// Show subscription detail
+async function showSubscriptionDetail(subscriptionId) {
+    try {
+        const response = await fetch(`/api/subscriptions/${subscriptionId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const subscription = await response.json();
+
+        // Update modal content
+        document.getElementById('subscription-detail-name').textContent = subscription.name;
+        document.getElementById('subscription-detail-description').textContent = subscription.description;
+        document.getElementById('subscription-detail-price').textContent = subscription.price;
+        document.getElementById('subscription-detail-duration').textContent = subscription.duration_days;
+        document.getElementById('subscription-detail-status').innerHTML = `
+            <span class="badge ${subscription.is_active ? 'bg-success' : 'bg-danger'}">
+                ${subscription.is_active ? 'Active' : 'Inactive'}
+            </span>
+        `;
+
+        // Update image
+        const imageElement = document.getElementById('subscription-detail-image');
+        if (subscription.image_url) {
+            imageElement.src = subscription.image_url;
+            imageElement.style.display = 'block';
+        } else {
+            imageElement.style.display = 'none';
+        }
+
+        // Update lists
+        const featuresElement = document.getElementById('subscription-detail-features');
+        const benefitsElement = document.getElementById('subscription-detail-benefits');
+        const restrictionsElement = document.getElementById('subscription-detail-restrictions');
+
+        featuresElement.innerHTML = subscription.features.map(feature => 
+            `<li><i class="bi bi-check-circle text-success me-2"></i>${feature}</li>`
+        ).join('');
+
+        benefitsElement.innerHTML = subscription.benefits.map(benefit => 
+            `<li><i class="bi bi-gift text-primary me-2"></i>${benefit}</li>`
+        ).join('');
+
+        restrictionsElement.innerHTML = subscription.restrictions.map(restriction => 
+            `<li><i class="bi bi-exclamation-circle text-warning me-2"></i>${restriction}</li>`
+        ).join('');
+
+        // Store subscription ID for edit button
+        document.getElementById('subscriptionDetailModal').dataset.subscriptionId = subscriptionId;
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('subscriptionDetailModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error loading subscription details:', error);
+        showMessage('Failed to load subscription details', 'danger');
+    }
+}
+
+// Edit subscription from detail view
+function editSubscriptionFromDetail() {
+    const subscriptionId = document.getElementById('subscriptionDetailModal').dataset.subscriptionId;
+    const detailModal = bootstrap.Modal.getInstance(document.getElementById('subscriptionDetailModal'));
+    detailModal.hide();
+    editSubscription(subscriptionId);
+}
+
 // Show add user modal
 function showAddUserModal() {
     const modal = new bootstrap.Modal(document.getElementById('addUserModal'));
@@ -191,6 +317,12 @@ function showAddUserModal() {
 // Show add product modal
 function showAddProductModal() {
     const modal = new bootstrap.Modal(document.getElementById('addProductModal'));
+    modal.show();
+}
+
+// Show add subscription modal
+function showAddSubscriptionModal() {
+    const modal = new bootstrap.Modal(document.getElementById('addSubscriptionModal'));
     modal.show();
 }
 
@@ -238,6 +370,9 @@ async function addProduct(event) {
 
         const response = await fetch('/api/admin/products', {
             method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
             body: formData
         });
 
@@ -269,6 +404,205 @@ async function addProduct(event) {
         const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = false;
         submitButton.innerHTML = 'Add Product';
+    }
+}
+
+// Add new subscription
+async function addSubscription() {
+    const form = document.getElementById('addSubscriptionForm');
+    const formData = new FormData(form);
+    
+    try {
+        // Show loading state
+        const submitButton = document.querySelector('#addSubscriptionModal .modal-footer .btn-primary');
+        const originalText = submitButton.textContent;
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
+        // Convert features, benefits, and restrictions from newline-separated text to arrays
+        const features = formData.get('features').split('\n').filter(f => f.trim());
+        const benefits = formData.get('benefits').split('\n').filter(b => b.trim());
+        const restrictions = formData.get('restrictions').split('\n').filter(r => r.trim());
+
+        // Create multipart form data with all required fields
+        const data = new FormData();
+        data.append('name', formData.get('name'));
+        data.append('description', formData.get('description'));
+        data.append('price', formData.get('price'));
+        data.append('duration_days', formData.get('duration_days'));
+        data.append('features', JSON.stringify(features));
+        data.append('benefits', JSON.stringify(benefits));
+        data.append('restrictions', JSON.stringify(restrictions));
+        data.append('is_active', formData.get('is_active') === 'true');
+
+        // Append image if selected
+        const imageFile = formData.get('image');
+        if (imageFile && imageFile.size > 0) {
+            data.append('image', imageFile);
+        }
+
+        const response = await fetch('/api/subscriptions', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: data
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Failed to add subscription');
+        }
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addSubscriptionModal'));
+        modal.hide();
+        form.reset();
+        loadSubscriptions();
+        showMessage('Subscription added successfully', 'success');
+    } catch (error) {
+        console.error('Error adding subscription:', error);
+        showMessage(error.message || 'Failed to add subscription', 'danger');
+    } finally {
+        // Reset button state
+        const submitButton = document.querySelector('#addSubscriptionModal .modal-footer .btn-primary');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Add Subscription';
+    }
+}
+
+// Edit subscription
+async function editSubscription(id) {
+    try {
+        const response = await fetch(`/api/subscriptions/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to fetch subscription');
+        
+        const subscription = await response.json();
+        
+        // Populate form
+        const form = document.getElementById('addSubscriptionForm');
+        form.name.value = subscription.name;
+        form.description.value = subscription.description;
+        form.price.value = subscription.price;
+        form.duration_days.value = subscription.duration_days;
+        form.features.value = subscription.features.join('\n');
+        form.benefits.value = subscription.benefits.join('\n');
+        form.restrictions.value = subscription.restrictions.join('\n');
+        form.is_active.checked = subscription.is_active;
+
+        // Handle image preview
+        const currentImageDiv = document.getElementById('currentImage');
+        const currentImageImg = currentImageDiv.querySelector('img');
+        if (subscription.image_url) {
+            currentImageImg.src = subscription.image_url;
+            currentImageDiv.style.display = 'block';
+        } else {
+            currentImageDiv.style.display = 'none';
+        }
+        
+        // Update modal title and button
+        document.querySelector('#addSubscriptionModal .modal-title').textContent = 'Edit Subscription';
+        document.querySelector('#addSubscriptionModal .modal-footer .btn-primary').textContent = 'Update Subscription';
+        document.querySelector('#addSubscriptionModal .modal-footer .btn-primary').onclick = () => updateSubscription(id);
+        
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('addSubscriptionModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error fetching subscription:', error);
+        showError('Failed to fetch subscription details');
+    }
+}
+
+// Update subscription
+async function updateSubscription(id) {
+    const form = document.getElementById('addSubscriptionForm');
+    const formData = new FormData(form);
+    
+    try {
+        // Convert features, benefits, and restrictions from newline-separated text to arrays
+        const features = formData.get('features').split('\n').filter(f => f.trim());
+        const benefits = formData.get('benefits').split('\n').filter(b => b.trim());
+        const restrictions = formData.get('restrictions').split('\n').filter(r => r.trim());
+
+        // Create multipart form data
+        const data = new FormData();
+        data.append('name', formData.get('name'));
+        data.append('description', formData.get('description'));
+        data.append('price', formData.get('price'));
+        data.append('duration_days', formData.get('duration_days'));
+        data.append('features', JSON.stringify(features));
+        data.append('benefits', JSON.stringify(benefits));
+        data.append('restrictions', JSON.stringify(restrictions));
+        data.append('is_active', formData.get('is_active') === 'true');
+
+        // Append image if selected
+        const imageFile = formData.get('image');
+        if (imageFile && imageFile.size > 0) {
+            data.append('image', imageFile);
+        }
+
+        const response = await fetch(`/api/subscriptions/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: data
+        });
+        
+        if (!response.ok) throw new Error('Failed to update subscription');
+        
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addSubscriptionModal'));
+        modal.hide();
+        form.reset();
+        
+        // Reset modal title and button
+        document.querySelector('#addSubscriptionModal .modal-title').textContent = 'Add New Subscription';
+        document.querySelector('#addSubscriptionModal .modal-footer .btn-primary').textContent = 'Add Subscription';
+        document.querySelector('#addSubscriptionModal .modal-footer .btn-primary').onclick = addSubscription;
+        
+        loadSubscriptions();
+        showSuccess('Subscription updated successfully');
+    } catch (error) {
+        console.error('Error updating subscription:', error);
+        showError('Failed to update subscription');
+    }
+}
+
+// Remove image from subscription
+function removeImage() {
+    const currentImageDiv = document.getElementById('currentImage');
+    currentImageDiv.style.display = 'none';
+    currentImageDiv.querySelector('img').src = '';
+    document.getElementById('image').value = '';
+}
+
+// Delete subscription
+async function deleteSubscription(id) {
+    if (!confirm('Are you sure you want to delete this subscription?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/subscriptions/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete subscription');
+        
+        loadSubscriptions();
+        showSuccess('Subscription deleted successfully');
+    } catch (error) {
+        console.error('Error deleting subscription:', error);
+        showError('Failed to delete subscription');
     }
 }
 

@@ -176,15 +176,34 @@ router.post('/products', upload.single('image'), async (req, res) => {
         let imageUrl = null;
         const fileExt = imageFile.originalname.split('.').pop();
         const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const filePath = `products/${fileName}`;
+        const filePath = `product-images/${fileName}`;
+
+        // Check if bucket exists
+        const { data: buckets, error: bucketsError } = await supabaseAdmin.storage.listBuckets();
+        if (bucketsError) {
+            console.error('Error listing buckets:', bucketsError);
+            return res.status(500).json({ 
+                error: 'Failed to access storage',
+                details: bucketsError.message 
+            });
+        }
+
+        const productsBucket = buckets.find(bucket => bucket.name === 'product-images');
+        if (!productsBucket) {
+            console.error('Products bucket not found');
+            return res.status(500).json({ 
+                error: 'Storage bucket not configured',
+                details: 'Please create a "product-images" bucket in Supabase Storage'
+            });
+        }
 
         console.log('Uploading to Supabase Storage:', {
-            bucket: 'products',
+            bucket: 'product-images',
             path: filePath
         });
 
         const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-            .from('products')
+            .from('product-images')
             .upload(filePath, imageFile.buffer, {
                 contentType: imageFile.mimetype,
                 cacheControl: '3600',
@@ -203,7 +222,7 @@ router.post('/products', upload.single('image'), async (req, res) => {
 
         // Get the public URL for the uploaded image
         const { data: { publicUrl } } = supabaseAdmin.storage
-            .from('products')
+            .from('product-images')
             .getPublicUrl(filePath);
 
         imageUrl = publicUrl;
