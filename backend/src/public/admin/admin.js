@@ -122,29 +122,65 @@ async function loadProducts() {
             }
         });
         
-        if (!response.ok) throw new Error('Failed to load products');
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to load products');
+        }
         
         const products = await response.json();
+        
+        // Ensure products is an array
+        if (!Array.isArray(products)) {
+            console.error('Invalid products data received:', products);
+            throw new Error('Invalid products data received from server');
+        }
+
         const tbody = document.getElementById('products-table-body');
+        
+        if (products.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="5" class="text-center">No products found</td>
+                </tr>
+            `;
+            return;
+        }
+
         tbody.innerHTML = products.map(product => `
             <tr>
-                <td>${product.id}</td>
-                <td>${product.name}</td>
-                <td>$${product.price.toFixed(2)}</td>
-                <td>${product.stock_quantity}</td>
+                <td>${product.id || 'N/A'}</td>
+                <td>${product.name || 'N/A'}</td>
+                <td>$${(product.price || 0).toFixed(2)}</td>
+                <td>${product.stock_quantity || 0}</td>
                 <td>
-                    <button class="btn btn-sm btn-primary" onclick="editProduct('${product.id}')">
+                    <button class="btn btn-sm btn-primary" onclick="editProduct('${product.id}')" title="Edit product">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct('${product.id}')">
+                    <button class="btn btn-sm btn-danger" onclick="deleteProduct('${product.id}')" title="Delete product">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>
             </tr>
         `).join('');
+
+        // Update products count if dashboard element exists
+        const productsCount = document.getElementById('products-count');
+        if (productsCount) {
+            productsCount.textContent = products.length;
+        }
     } catch (error) {
         console.error('Error loading products:', error);
-        showError('Failed to load products');
+        showError(error.message || 'Failed to load products');
+        
+        // Show error state in table
+        const tbody = document.getElementById('products-table-body');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-danger">
+                    <i class="bi bi-exclamation-triangle"></i> Error loading products
+                </td>
+            </tr>
+        `;
     }
 }
 
@@ -330,8 +366,28 @@ function showAddSubscriptionModal() {
 async function addUser() {
     const form = document.getElementById('addUserForm');
     const formData = new FormData(form);
+    const submitButton = document.querySelector('#addUserModal .modal-footer .btn-primary');
+    
+    // Basic form validation
+    const email = formData.get('email');
+    const password = formData.get('password');
+    const role = formData.get('role');
+    
+    if (!email || !password) {
+        showMessage('Email and password are required', 'danger');
+        return;
+    }
+    
+    if (role && !['admin', 'customer'].includes(role)) {
+        showMessage('Invalid role selected', 'danger');
+        return;
+    }
     
     try {
+        // Disable submit button and show loading state
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Adding...';
+
         const response = await fetch('/api/admin/users', {
             method: 'POST',
             headers: {
@@ -341,16 +397,24 @@ async function addUser() {
             body: JSON.stringify(Object.fromEntries(formData))
         });
         
-        if (!response.ok) throw new Error('Failed to add user');
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || result.details || 'Failed to add user');
+        }
         
         const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
         modal.hide();
         form.reset();
         loadUsers();
-        showSuccess('User added successfully');
+        showMessage('User added successfully', 'success');
     } catch (error) {
         console.error('Error adding user:', error);
-        showError('Failed to add user');
+        showMessage(error.message || 'Failed to add user', 'danger');
+    } finally {
+        // Reset button state
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Add User';
     }
 }
 
@@ -376,12 +440,12 @@ async function addProduct(event) {
             body: formData
         });
 
-        const result = await response.json();
-
         if (!response.ok) {
-            throw new Error(result.error || 'Failed to add product');
+            const result = await response.json();
+            throw new Error(result.error || result.message || 'Failed to add product');
         }
 
+        const result = await response.json();
         console.log('Product added successfully:', result);
         
         // Reset form
@@ -398,7 +462,7 @@ async function addProduct(event) {
         loadProducts();
     } catch (error) {
         console.error('Error adding product:', error);
-        showMessage(error.message || 'Failed to add product', 'error');
+        showMessage(error.message || 'Failed to add product', 'danger');
     } finally {
         // Reset button state
         const submitButton = form.querySelector('button[type="submit"]');
@@ -525,37 +589,79 @@ async function updateSubscription(id) {
     const formData = new FormData(form);
     
     try {
+        // Show loading state
+        const submitButton = document.querySelector('#addSubscriptionModal .modal-footer .btn-primary');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+
         // Convert features, benefits, and restrictions from newline-separated text to arrays
         const features = formData.get('features').split('\n').filter(f => f.trim());
         const benefits = formData.get('benefits').split('\n').filter(b => b.trim());
         const restrictions = formData.get('restrictions').split('\n').filter(r => r.trim());
 
-        // Create multipart form data
-        const data = new FormData();
-        data.append('name', formData.get('name'));
-        data.append('description', formData.get('description'));
-        data.append('price', formData.get('price'));
-        data.append('duration_days', formData.get('duration_days'));
-        data.append('features', JSON.stringify(features));
-        data.append('benefits', JSON.stringify(benefits));
-        data.append('restrictions', JSON.stringify(restrictions));
-        data.append('is_active', formData.get('is_active') === 'true');
+        // Create the request body as JSON
+        const requestBody = {
+            name: formData.get('name'),
+            description: formData.get('description'),
+            price: parseFloat(formData.get('price')),
+            duration_days: parseInt(formData.get('duration_days')),
+            features: features,
+            benefits: benefits,
+            restrictions: restrictions,
+            is_active: formData.get('is_active') === 'true'
+        };
 
-        // Append image if selected
+        // Handle image separately if present
         const imageFile = formData.get('image');
         if (imageFile && imageFile.size > 0) {
-            data.append('image', imageFile);
+            const imageData = new FormData();
+            imageData.append('image', imageFile);
+            
+            // First upload the image
+            const imageResponse = await fetch(`/api/subscriptions/${id}/image`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                body: imageData
+            });
+            
+            if (!imageResponse.ok) {
+                const imageError = await imageResponse.json();
+                throw new Error(imageError.message || 'Failed to upload image');
+            }
+            
+            const imageResult = await imageResponse.json();
+            requestBody.image_url = imageResult.image_url;
         }
 
+        // First verify the subscription exists
+        const checkResponse = await fetch(`/api/subscriptions/${id}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!checkResponse.ok) {
+            throw new Error('Subscription not found');
+        }
+
+        // Update the subscription
         const response = await fetch(`/api/subscriptions/${id}`, {
             method: 'PUT',
             headers: {
-                'Authorization': `Bearer ${token}`
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             },
-            body: data
+            body: JSON.stringify(requestBody)
         });
         
-        if (!response.ok) throw new Error('Failed to update subscription');
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to update subscription');
+        }
+
+        const result = await response.json();
         
         const modal = bootstrap.Modal.getInstance(document.getElementById('addSubscriptionModal'));
         modal.hide();
@@ -570,7 +676,12 @@ async function updateSubscription(id) {
         showSuccess('Subscription updated successfully');
     } catch (error) {
         console.error('Error updating subscription:', error);
-        showError('Failed to update subscription');
+        showError(error.message || 'Failed to update subscription');
+    } finally {
+        // Reset button state
+        const submitButton = document.querySelector('#addSubscriptionModal .modal-footer .btn-primary');
+        submitButton.disabled = false;
+        submitButton.textContent = 'Update Subscription';
     }
 }
 
@@ -625,17 +736,239 @@ function showMessage(message, type = 'success') {
 
 // Utility functions
 function showSuccess(message) {
-    // Implement success notification
-    alert(message);
+    showMessage(message, 'success');
 }
 
 function showError(message) {
-    // Implement error notification
-    alert(message);
+    showMessage(message, 'danger');
 }
 
 // Logout
 function logout() {
     localStorage.removeItem('adminToken');
     window.location.href = '/admin/login.html';
+}
+
+// Edit user function
+async function editUser(userId) {
+    try {
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch user');
+        }
+        
+        const user = await response.json();
+        
+        // Populate edit modal with user data
+        document.getElementById('editUserFullName').value = user.full_name || '';
+        document.getElementById('editUserEmail').value = user.email || '';
+        document.getElementById('editUserRole').value = user.role || 'customer';
+        document.getElementById('editUserId').value = userId;
+        
+        // Show edit modal
+        const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+        editUserModal.show();
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        showMessage(error.message || 'Failed to fetch user details', 'danger');
+    }
+}
+
+// Update user function
+async function updateUser() {
+    try {
+        const userId = document.getElementById('editUserId').value;
+        const fullName = document.getElementById('editUserFullName').value;
+        const role = document.getElementById('editUserRole').value;
+        
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                full_name: fullName,
+                role: role
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to update user');
+        }
+        
+        // Close modal and reload users
+        const editUserModal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+        editUserModal.hide();
+        loadUsers();
+        showMessage('User updated successfully', 'success');
+    } catch (error) {
+        console.error('Error updating user:', error);
+        showMessage(error.message || 'Failed to update user', 'danger');
+    }
+}
+
+// Delete user function
+async function deleteUser(userId) {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/users/${userId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete user');
+        
+        loadUsers();
+        showSuccess('User deleted successfully');
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        showError('Failed to delete user');
+    }
+}
+
+// Edit product function
+async function editProduct(productId) {
+    try {
+        const response = await fetch(`/api/admin/product/${productId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch product');
+        }
+        
+        const product = await response.json();
+        
+        // Get the form and verify it exists
+        const form = document.getElementById('editProductForm');
+        if (!form) {
+            throw new Error('Edit product form not found in the DOM');
+        }
+
+        // Safely set form values with null checks
+        const setFormValue = (name, value) => {
+            const element = form.querySelector(`[name="${name}"]`);
+            if (element) {
+                if (element.type === 'checkbox') {
+                    element.checked = value || false;
+                } else {
+                    element.value = value || '';
+                }
+            }
+        };
+
+        // Set all form values
+        setFormValue('productId', productId);
+        setFormValue('name', product.name);
+        setFormValue('description', product.description);
+        setFormValue('price', product.price);
+        setFormValue('stock', product.stock_quantity);
+        setFormValue('category', product.category || 'snacks');
+        setFormValue('isAvailable', product.is_available);
+        setFormValue('isPreOrder', product.is_pre_order);
+
+        // Show current image if it exists
+        const currentImage = document.getElementById('currentProductImage');
+        if (currentImage && product.image_url) {
+            currentImage.src = product.image_url;
+            currentImage.style.display = 'block';
+        }
+
+        // Show modal using Bootstrap's modal system
+        const modal = new bootstrap.Modal(document.getElementById('editProductModal'));
+        modal.show();
+    } catch (error) {
+        console.error('Error fetching product:', error);
+        showMessage(error.message || 'Failed to fetch product details', 'danger');
+    }
+}
+
+// Update product function
+async function updateProduct(event) {
+    event.preventDefault();
+    
+    try {
+        const form = event.target;
+        const formData = new FormData(form);
+        const productId = formData.get('productId');
+
+        if (!productId) {
+            throw new Error('Product ID is missing');
+        }
+
+        // Show loading state
+        const submitButton = form.querySelector('button[type="submit"]');
+        const originalText = submitButton.innerHTML;
+        submitButton.disabled = true;
+        submitButton.innerHTML = 'Updating...';
+
+        const response = await fetch(`/api/admin/products/${productId}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            body: formData // Using FormData to handle file uploads properly
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to update product');
+        }
+        
+        // Show success message
+        showSuccess('Product updated successfully');
+        
+        // Close modal and reload products
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+        if (modal) {
+            modal.hide();
+        }
+        
+        // Reload products list
+        await loadProducts();
+    } catch (error) {
+        console.error('Error updating product:', error);
+        showError(error.message || 'Failed to update product');
+    } finally {
+        // Reset button state
+        const submitButton = form.querySelector('button[type="submit"]');
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    }
+}
+
+// Delete product function
+async function deleteProduct(productId) {
+    if (!confirm('Are you sure you want to delete this product?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/products/${productId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete product');
+        
+        loadProducts();
+        showSuccess('Product deleted successfully');
+    } catch (error) {
+        console.error('Error deleting product:', error);
+        showError('Failed to delete product');
+    }
 } 

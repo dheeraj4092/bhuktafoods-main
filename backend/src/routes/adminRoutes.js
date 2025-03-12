@@ -2,9 +2,62 @@ import express from 'express';
 import { authenticateToken, isAdmin } from '../middleware/auth.js';
 import { supabaseAdmin } from '../config/supabase.js';
 import multer from 'multer';
+import path from 'path';
+import {
+    bulkUpdateStock,
+    bulkDeleteProducts,
+    bulkUpdateStatus,
+    bulkUpdateFeatured
+} from '../controllers/bulkOperationsController.js';
 
 const router = express.Router();
 const upload = multer();
+
+// Validation middleware
+const validateBulkOperation = (req, res, next) => {
+  const { productIds } = req.body;
+  
+  if (!Array.isArray(productIds)) {
+    return res.status(400).json({
+      error: 'Validation error',
+      message: 'productIds must be an array',
+      code: 'INVALID_PRODUCT_IDS'
+    });
+  }
+
+  if (productIds.length === 0) {
+    return res.status(400).json({
+      error: 'Validation error',
+      message: 'productIds array cannot be empty',
+      code: 'EMPTY_PRODUCT_IDS'
+    });
+  }
+
+  next();
+};
+
+const validateStockUpdate = (req, res, next) => {
+  const { operation, amount } = req.body;
+  const validOperations = ['increment', 'decrement', 'set'];
+  
+  if (!validOperations.includes(operation)) {
+    return res.status(400).json({
+      error: 'Validation error',
+      message: `operation must be one of: ${validOperations.join(', ')}`,
+      code: 'INVALID_OPERATION'
+    });
+  }
+
+  if (typeof amount !== 'number' || amount < 0) {
+    return res.status(400).json({
+      error: 'Validation error',
+      message: 'amount must be a non-negative number',
+      code: 'INVALID_AMOUNT'
+    });
+  }
+
+  next();
+};
 
 // Apply authentication and admin middleware to all routes
 router.use(authenticateToken, isAdmin);
@@ -54,21 +107,119 @@ router.get('/users', async (req, res) => {
     }
 });
 
+// Get single user
+router.get('/users/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { data: user, error } = await supabaseAdmin
+            .from('profiles')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json(user);
+    } catch (error) {
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Failed to fetch user' });
+    }
+});
+
 // Add new user
 router.post('/users', async (req, res) => {
     try {
         const { email, password, full_name, role } = req.body;
 
+        // Input validation
+        if (!email || !password || !full_name) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Email, password, and full name are required',
+                code: 'MISSING_REQUIRED_FIELDS'
+            });
+        }
+
+        // Validate role
+        if (role && !['admin', 'customer'].includes(role)) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Invalid role. Must be either "admin" or "customer"',
+                code: 'INVALID_ROLE'
+            });
+        }
+
+        // First check if user already exists in both auth and profiles
+        const { data: existingProfile } = await supabaseAdmin
+            .from('profiles')
+            .select('id, email')
+            .eq('email', email)
+            .single();
+
+        if (existingProfile) {
+            return res.status(400).json({
+                error: 'User exists',
+                message: 'User with this email already exists',
+                code: 'DUPLICATE_USER'
+            });
+        }
+
         // Create user in Supabase Auth
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
             password,
-            email_confirm: true
+            email_confirm: true,
+            user_metadata: {
+                full_name,
+                role: role || 'customer'
+            }
         });
 
-        if (authError) throw authError;
+        if (authError) {
+            console.error('Auth creation error:', authError);
+            return res.status(400).json({
+                error: 'Auth error',
+                message: authError.message,
+                code: 'AUTH_CREATE_ERROR'
+            });
+        }
 
-        // Create user profile
+        // Check if profile already exists for this user ID
+        const { data: existingProfileById } = await supabaseAdmin
+            .from('profiles')
+            .select('id')
+            .eq('id', authData.user.id)
+            .single();
+
+        if (existingProfileById) {
+            // If profile exists, update it instead of creating new
+            const { data: updatedProfile, error: updateError } = await supabaseAdmin
+                .from('profiles')
+                .update({
+                    email,
+                    full_name,
+                    role: role || 'customer',
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', authData.user.id)
+                .select()
+                .single();
+
+            if (updateError) {
+                console.error('Profile update error:', updateError);
+                return res.status(500).json({
+                    error: 'Profile update failed',
+                    message: updateError.message,
+                    code: 'PROFILE_UPDATE_ERROR'
+                });
+            }
+
+            return res.status(200).json(updatedProfile);
+        }
+
+        // Create new profile
         const { data: profile, error: profileError } = await supabaseAdmin
             .from('profiles')
             .insert([
@@ -76,18 +227,33 @@ router.post('/users', async (req, res) => {
                     id: authData.user.id,
                     email,
                     full_name,
-                    role: role || 'customer'
+                    role: role || 'customer',
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
                 }
             ])
             .select()
             .single();
 
-        if (profileError) throw profileError;
+        if (profileError) {
+            // If profile creation fails, delete the auth user
+            await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+            console.error('Profile creation error:', profileError);
+            return res.status(500).json({
+                error: 'Profile creation failed',
+                message: profileError.message,
+                code: 'PROFILE_CREATE_ERROR'
+            });
+        }
 
         res.status(201).json(profile);
     } catch (error) {
         console.error('Error creating user:', error);
-        res.status(500).json({ error: 'Failed to create user' });
+        res.status(500).json({
+            error: 'Server error',
+            message: 'Failed to create user',
+            code: 'SERVER_ERROR'
+        });
     }
 });
 
@@ -148,22 +314,138 @@ router.get('/products', async (req, res) => {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        res.json(products);
+        if (error) {
+            console.error('Error fetching products:', error);
+            return res.status(500).json({ 
+                error: 'Database error',
+                message: 'Failed to fetch products',
+                code: 'DB_ERROR'
+            });
+        }
+
+        // Ensure we always return an array
+        res.json(products || []);
     } catch (error) {
         console.error('Error fetching products:', error);
-        res.status(500).json({ error: 'Failed to fetch products' });
+        res.status(500).json({ 
+            error: 'Server error',
+            message: 'Failed to fetch products',
+            code: 'SERVER_ERROR'
+        });
     }
 });
+
+// Serve admin interface
+router.get('/products/manage', (req, res) => {
+    res.sendFile(path.join(__dirname, '../public/admin/products.html'));
+});
+
+// Get all orders with validation
+router.get('/orders', async (req, res, next) => {
+    try {
+        const { data: orders, error } = await supabaseAdmin
+            .from('orders')
+            .select(`
+                *,
+                profiles:user_id (
+                    full_name
+                )
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        res.json(orders);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Update order status with validation
+router.put('/orders/:id/status', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!status) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'status is required',
+                code: 'MISSING_STATUS'
+            });
+        }
+
+        const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+        if (!validStatuses.includes(status)) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: `status must be one of: ${validStatuses.join(', ')}`,
+                code: 'INVALID_STATUS'
+            });
+        }
+
+        const { data: order, error } = await supabaseAdmin
+            .from('orders')
+            .update({
+                status,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        res.json(order);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Bulk operations with validation
+router.post('/products/bulk-stock-update', validateStockUpdate, bulkUpdateStock);
+router.post('/products/bulk-delete', validateBulkOperation, bulkDeleteProducts);
+router.post('/products/bulk-status-update', validateBulkOperation, bulkUpdateStatus);
+router.post('/products/bulk-featured-update', validateBulkOperation, bulkUpdateFeatured);
 
 // Create a new product
 router.post('/products', upload.single('image'), async (req, res) => {
     try {
-        const { name, description, price, category, isAvailable, isPreOrder } = req.body;
+        const { name, description, price, category, isAvailable, isPreOrder, stock } = req.body;
         const imageFile = req.file;
 
+        // Validate required fields
+        if (!name || !description || !price || !category) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Name, description, price, and category are required',
+                code: 'MISSING_REQUIRED_FIELDS'
+            });
+        }
+
+        // Validate price
+        if (isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Price must be a non-negative number',
+                code: 'INVALID_PRICE'
+            });
+        }
+
+        // Validate stock quantity
+        const initialStock = stock ? parseInt(stock) : 0;
+        if (isNaN(initialStock) || initialStock < 0) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Stock quantity must be a non-negative number',
+                code: 'INVALID_STOCK'
+            });
+        }
+
         if (!imageFile) {
-            return res.status(400).json({ error: 'No image file provided' });
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'No image file provided',
+                code: 'MISSING_IMAGE'
+            });
         }
 
         console.log('Received image file:', {
@@ -239,7 +521,8 @@ router.post('/products', upload.single('image'), async (req, res) => {
                     category,
                     image_url: imageUrl,
                     is_available: isAvailable === 'true',
-                    is_pre_order: isPreOrder === 'true'
+                    is_pre_order: isPreOrder === 'true',
+                    stock: initialStock
                 }
             ])
             .select()
@@ -265,30 +548,146 @@ router.post('/products', upload.single('image'), async (req, res) => {
 });
 
 // Update product
-router.put('/products/:id', async (req, res) => {
+router.put('/products/:id', upload.single('image'), async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, price, stock_quantity, image_url } = req.body;
+        const { name, description, price, category, stock, isAvailable, isPreOrder } = req.body;
+        const imageFile = req.file;
 
-        const { data: product, error } = await supabaseAdmin
+        console.log('Update request body:', req.body);
+
+        // Validate required fields
+        if (!name || !description || !price || !category) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Name, description, price, and category are required',
+                code: 'MISSING_REQUIRED_FIELDS'
+            });
+        }
+
+        // Validate price
+        if (isNaN(parseFloat(price)) || parseFloat(price) < 0) {
+            return res.status(400).json({
+                error: 'Validation error',
+                message: 'Price must be a non-negative number',
+                code: 'INVALID_PRICE'
+            });
+        }
+
+        // First check if product exists
+        const { data: existingProduct, error: fetchError } = await supabaseAdmin
             .from('products')
-            .update({
-                name,
-                description,
-                price,
-                stock_quantity,
-                image_url,
-                updated_at: new Date().toISOString()
-            })
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (fetchError || !existingProduct) {
+            console.error('Error fetching product:', fetchError);
+            return res.status(404).json({
+                error: 'Not found',
+                message: 'Product not found',
+                code: 'PRODUCT_NOT_FOUND'
+            });
+        }
+
+        // Prepare update data
+        const updateData = {
+            name,
+            description,
+            price: parseFloat(price),
+            category,
+            stock: stock ? parseInt(stock) : existingProduct.stock,
+            is_available: isAvailable === 'true' || isAvailable === true,
+            is_pre_order: isPreOrder === 'true' || isPreOrder === true,
+            updated_at: new Date().toISOString()
+        };
+
+        console.log('Update data:', updateData);
+
+        // Handle image upload if new image is provided
+        if (imageFile) {
+            try {
+                const fileExt = imageFile.originalname.split('.').pop();
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `product-images/${fileName}`;
+
+                const { error: uploadError } = await supabaseAdmin.storage
+                    .from('product-images')
+                    .upload(filePath, imageFile.buffer, {
+                        contentType: imageFile.mimetype,
+                        cacheControl: '3600',
+                        upsert: false
+                    });
+
+                if (uploadError) {
+                    console.error('Error uploading image:', uploadError);
+                    return res.status(500).json({
+                        error: 'Upload failed',
+                        message: 'Failed to upload image',
+                        code: 'IMAGE_UPLOAD_ERROR'
+                    });
+                }
+
+                // Get the public URL for the uploaded image
+                const { data: { publicUrl } } = supabaseAdmin.storage
+                    .from('product-images')
+                    .getPublicUrl(filePath);
+
+                updateData.image_url = publicUrl;
+
+                // Delete old image if it exists
+                if (existingProduct.image_url) {
+                    const oldImagePath = existingProduct.image_url.split('/').pop();
+                    await supabaseAdmin.storage
+                        .from('product-images')
+                        .remove([oldImagePath]);
+                }
+            } catch (uploadError) {
+                console.error('Error handling image:', uploadError);
+                return res.status(500).json({
+                    error: 'Upload failed',
+                    message: 'Failed to process image',
+                    code: 'IMAGE_PROCESSING_ERROR'
+                });
+            }
+        }
+
+        console.log('Updating product with data:', updateData);
+
+        // Update product
+        const { data: product, error: updateError } = await supabaseAdmin
+            .from('products')
+            .update(updateData)
             .eq('id', id)
             .select()
             .single();
 
-        if (error) throw error;
+        if (updateError) {
+            console.error('Error updating product:', updateError);
+            return res.status(500).json({
+                error: 'Update failed',
+                message: updateError.message,
+                code: 'PRODUCT_UPDATE_ERROR'
+            });
+        }
+
+        if (!product) {
+            return res.status(404).json({
+                error: 'Not found',
+                message: 'Product not found after update',
+                code: 'PRODUCT_NOT_FOUND'
+            });
+        }
+
+        console.log('Product updated successfully:', product);
         res.json(product);
     } catch (error) {
         console.error('Error updating product:', error);
-        res.status(500).json({ error: 'Failed to update product' });
+        res.status(500).json({
+            error: 'Server error',
+            message: error.message || 'Failed to update product',
+            code: 'SERVER_ERROR'
+        });
     }
 });
 
@@ -307,51 +706,6 @@ router.delete('/products/:id', async (req, res) => {
     } catch (error) {
         console.error('Error deleting product:', error);
         res.status(500).json({ error: 'Failed to delete product' });
-    }
-});
-
-// Get all orders
-router.get('/orders', async (req, res) => {
-    try {
-        const { data: orders, error } = await supabaseAdmin
-            .from('orders')
-            .select(`
-                *,
-                profiles:user_id (
-                    full_name
-                )
-            `)
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        res.json(orders);
-    } catch (error) {
-        console.error('Error fetching orders:', error);
-        res.status(500).json({ error: 'Failed to fetch orders' });
-    }
-});
-
-// Update order status
-router.put('/orders/:id/status', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status } = req.body;
-
-        const { data: order, error } = await supabaseAdmin
-            .from('orders')
-            .update({
-                status,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', id)
-            .select()
-            .single();
-
-        if (error) throw error;
-        res.json(order);
-    } catch (error) {
-        console.error('Error updating order status:', error);
-        res.status(500).json({ error: 'Failed to update order status' });
     }
 });
 

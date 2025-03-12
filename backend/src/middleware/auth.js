@@ -8,17 +8,19 @@ export const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader) {
-      return res.status(401).json({ error: 'No authorization header' });
+      console.log('Missing authorization header');
+      return res.status(401).json({ error: 'Authentication required', details: 'No authorization header' });
     }
 
     const token = authHeader.split(' ')[1];
     if (!token) {
-      return res.status(401).json({ error: 'No token provided' });
+      console.log('No token in authorization header');
+      return res.status(401).json({ error: 'Authentication required', details: 'No token provided' });
     }
 
     if (!JWT_SECRET) {
       console.error('JWT_SECRET is not defined in environment variables');
-      return res.status(500).json({ error: 'Server configuration error' });
+      return res.status(500).json({ error: 'Server configuration error', details: 'Missing JWT configuration' });
     }
 
     // Verify JWT token
@@ -27,7 +29,10 @@ export const authenticateToken = async (req, res, next) => {
       decodedToken = jwt.verify(token, JWT_SECRET);
     } catch (error) {
       console.error('JWT verification error:', error);
-      return res.status(401).json({ error: 'Invalid token' });
+      if (error.name === 'TokenExpiredError') {
+        return res.status(401).json({ error: 'Token expired', details: 'Please log in again' });
+      }
+      return res.status(401).json({ error: 'Invalid token', details: error.message });
     }
 
     // Get user profile with role information
@@ -39,7 +44,18 @@ export const authenticateToken = async (req, res, next) => {
 
     if (profileError) {
       console.error('Profile fetch error:', profileError);
-      return res.status(500).json({ error: 'Error fetching user profile' });
+      return res.status(500).json({ 
+        error: 'Error fetching user profile', 
+        details: profileError.message 
+      });
+    }
+
+    if (!profile) {
+      console.error('Profile not found for user:', decodedToken.userId);
+      return res.status(404).json({ 
+        error: 'User profile not found',
+        details: 'Please complete your profile setup'
+      });
     }
 
     // Get user from Supabase using admin client
@@ -47,7 +63,10 @@ export const authenticateToken = async (req, res, next) => {
     
     if (userError || !user) {
       console.error('User fetch error:', userError);
-      return res.status(401).json({ error: 'User not found' });
+      return res.status(401).json({ 
+        error: 'User not found', 
+        details: userError ? userError.message : 'User account may have been deleted'
+      });
     }
 
     // Attach user and profile to request
@@ -56,7 +75,10 @@ export const authenticateToken = async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
-    res.status(500).json({ error: 'Internal server error in auth middleware' });
+    res.status(500).json({ 
+      error: 'Internal server error in auth middleware',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -64,16 +86,27 @@ export const authenticateToken = async (req, res, next) => {
 export const isAdmin = async (req, res, next) => {
   try {
     if (!req.profile) {
-      return res.status(401).json({ error: 'No user profile found' });
+      console.error('No user profile in request');
+      return res.status(401).json({ 
+        error: 'No user profile found',
+        details: 'Authentication required'
+      });
     }
 
     if (req.profile.role !== 'admin') {
-      return res.status(403).json({ error: 'Admin access required' });
+      console.error(`User ${req.profile.id} attempted admin access with role ${req.profile.role}`);
+      return res.status(403).json({ 
+        error: 'Admin access required',
+        details: 'Your account does not have administrative privileges'
+      });
     }
 
     next();
   } catch (error) {
     console.error('Admin check error:', error);
-    res.status(500).json({ error: 'Internal server error in admin check' });
+    res.status(500).json({ 
+      error: 'Internal server error in admin check',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 }; 

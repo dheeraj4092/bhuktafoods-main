@@ -45,52 +45,107 @@ export const getProducts = async (req, res) => {
       limit = 10
     } = req.query;
 
-    let query = supabase.from('products').select('*');
+    // Validate numeric inputs
+    const validatedPage = Math.max(1, parseInt(page) || 1);
+    const validatedLimit = Math.min(50, Math.max(1, parseInt(limit) || 10));
+    const validatedMinPrice = minPrice ? Math.max(0, parseFloat(minPrice)) : null;
+    const validatedMaxPrice = maxPrice ? Math.max(0, parseFloat(maxPrice)) : null;
+
+    // Validate sort order
+    const validatedSortOrder = ['asc', 'desc'].includes(sortOrder.toLowerCase()) ? sortOrder.toLowerCase() : 'asc';
+
+    // Validate sortBy field
+    const validSortFields = ['name', 'price', 'created_at', 'category', 'stock_quantity'];
+    const validatedSortBy = validSortFields.includes(sortBy) ? sortBy : 'created_at';
+
+    let query = supabase
+      .from('products')
+      .select('*', { count: 'exact' });
 
     // Apply search filter
     if (search) {
-      query = query.or(`name.ilike.%${search}%,description.ilike.%${search}%`);
+      const searchTerm = search.trim();
+      if (searchTerm) {
+        query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+      }
     }
 
     // Apply category filter
     if (category) {
-      query = query.eq('category', category);
+      query = query.eq('category', category.trim());
     }
 
     // Apply price range filter
-    if (minPrice) {
-      query = query.gte('price', minPrice);
+    if (validatedMinPrice !== null) {
+      query = query.gte('price', validatedMinPrice);
     }
-    if (maxPrice) {
-      query = query.lte('price', maxPrice);
+    if (validatedMaxPrice !== null) {
+      query = query.lte('price', validatedMaxPrice);
     }
 
     // Apply sorting
-    if (sortBy) {
-      query = query.order(sortBy, { ascending: sortOrder === 'asc' });
-    }
+    query = query.order(validatedSortBy, { ascending: validatedSortOrder === 'asc' });
 
     // Apply pagination
-    const start = (page - 1) * limit;
-    const end = start + limit - 1;
+    const start = (validatedPage - 1) * validatedLimit;
+    const end = start + validatedLimit - 1;
     query = query.range(start, end);
 
+    // Execute query
     const { data: products, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('Database query error:', error);
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Error fetching products',
+        code: 'DB_ERROR',
+        details: error.message
+      });
+    }
+
+    // Return empty array if no products found
+    if (!products) {
+      return res.json({
+        products: [],
+        pagination: {
+          total: 0,
+          page: validatedPage,
+          limit: validatedLimit,
+          totalPages: 0
+        }
+      });
+    }
+
+    // Calculate pagination info
+    const totalPages = Math.ceil((count || 0) / validatedLimit);
 
     res.json({
       products,
       pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
+        total: count || 0,
+        page: validatedPage,
+        limit: validatedLimit,
+        totalPages,
+        hasMore: validatedPage < totalPages
+      },
+      filters: {
+        search: search || null,
+        category: category || null,
+        minPrice: validatedMinPrice,
+        maxPrice: validatedMaxPrice,
+        sortBy: validatedSortBy,
+        sortOrder: validatedSortOrder
       }
     });
   } catch (error) {
     console.error('Get products error:', error);
-    res.status(500).json({ error: 'Error fetching products' });
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Error fetching products',
+      code: 'SERVER_ERROR',
+      details: error.message
+    });
   }
 };
 

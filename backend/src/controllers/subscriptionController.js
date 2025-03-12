@@ -139,74 +139,148 @@ export const updateSubscription = async (req, res) => {
       is_active
     } = req.body;
 
+    // First check if subscription exists
+    const { data: existingSubscription, error: checkError } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (checkError) {
+      console.error('Error checking subscription:', checkError);
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Error checking subscription existence',
+        code: 'DB_ERROR'
+      });
+    }
+
+    if (!existingSubscription) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Subscription not found',
+        code: 'SUBSCRIPTION_NOT_FOUND'
+      });
+    }
+
+    // Validate required fields
+    if (!name || !description || !price || !duration_days) {
+      return res.status(400).json({
+        error: 'Validation error',
+        message: 'Name, description, price, and duration are required',
+        code: 'MISSING_REQUIRED_FIELDS'
+      });
+    }
+
     // Handle image upload
     let image_url = undefined; // undefined means don't update the image_url
     if (req.file) {
-      // Get current subscription to delete old image if it exists
-      const { data: currentSubscription } = await supabase
-        .from('subscriptions')
-        .select('image_url')
-        .eq('id', id)
-        .single();
+      try {
+        // Delete old image if it exists
+        if (existingSubscription.image_url) {
+          const oldPath = existingSubscription.image_url.split('/').slice(-2).join('/');
+          await supabase.storage
+            .from('product-images')
+            .remove([oldPath]);
+        }
 
-      if (currentSubscription?.image_url) {
-        // Extract the path from the URL
-        const oldPath = currentSubscription.image_url.split('/').slice(-2).join('/');
-        // Delete old image
-        await supabase.storage
+        // Upload new image
+        const fileExt = path.extname(req.file.originalname);
+        const fileName = `subscription-${uuidv4()}${fileExt}`;
+        const filePath = `subscriptions/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
           .from('product-images')
-          .remove([oldPath]);
-      }
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            cacheControl: '3600'
+          });
 
-      // Upload new image
-      const fileExt = path.extname(req.file.originalname);
-      const fileName = `subscription-${uuidv4()}${fileExt}`;
-      const filePath = `subscriptions/${fileName}`;
+        if (uploadError) {
+          console.error('Image upload error:', uploadError);
+          return res.status(500).json({
+            error: 'Upload failed',
+            message: 'Failed to upload image',
+            code: 'IMAGE_UPLOAD_ERROR'
+          });
+        }
 
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, req.file.buffer, {
-          contentType: req.file.mimetype
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        image_url = publicUrl;
+      } catch (uploadError) {
+        console.error('Error handling image:', uploadError);
+        return res.status(500).json({
+          error: 'Upload failed',
+          message: 'Failed to process image',
+          code: 'IMAGE_PROCESSING_ERROR'
         });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      image_url = publicUrl;
+      }
     }
 
     // Parse arrays if they're strings
-    const parsedFeatures = features ? (typeof features === 'string' ? JSON.parse(features) : features) : undefined;
-    const parsedBenefits = benefits ? (typeof benefits === 'string' ? JSON.parse(benefits) : benefits) : undefined;
-    const parsedRestrictions = restrictions ? (typeof restrictions === 'string' ? JSON.parse(restrictions) : restrictions) : undefined;
+    const parsedFeatures = features ? (typeof features === 'string' ? JSON.parse(features) : features) : existingSubscription.features;
+    const parsedBenefits = benefits ? (typeof benefits === 'string' ? JSON.parse(benefits) : benefits) : existingSubscription.benefits;
+    const parsedRestrictions = restrictions ? (typeof restrictions === 'string' ? JSON.parse(restrictions) : restrictions) : existingSubscription.restrictions;
 
-    const { data: subscription, error } = await supabase
+    // Prepare update data
+    const updateData = {
+      name,
+      description,
+      price: parseFloat(price),
+      duration_days: parseInt(duration_days),
+      features: parsedFeatures,
+      benefits: parsedBenefits,
+      restrictions: parsedRestrictions,
+      updated_at: new Date().toISOString()
+    };
+
+    // Only update image_url if we have a new one
+    if (image_url !== undefined) {
+      updateData.image_url = image_url;
+    }
+
+    // Only update is_active if it's provided
+    if (is_active !== undefined) {
+      updateData.is_active = is_active === 'true' || is_active === true;
+    }
+
+    // Update subscription
+    const { data: subscription, error: updateError } = await supabase
       .from('subscriptions')
-      .update({
-        name,
-        description,
-        price: price ? parseFloat(price) : undefined,
-        duration_days: duration_days ? parseInt(duration_days) : undefined,
-        image_url,
-        features: parsedFeatures,
-        benefits: parsedBenefits,
-        restrictions: parsedRestrictions,
-        is_active: is_active === 'true' || is_active === true
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (updateError) {
+      console.error('Update error:', updateError);
+      return res.status(500).json({
+        error: 'Update failed',
+        message: updateError.message,
+        code: 'UPDATE_ERROR'
+      });
+    }
+
+    if (!subscription) {
+      return res.status(404).json({
+        error: 'Not found',
+        message: 'Subscription not found after update',
+        code: 'UPDATE_RESULT_NOT_FOUND'
+      });
+    }
+
+    console.log('Subscription updated successfully:', subscription);
     res.json(subscription);
   } catch (error) {
     console.error('Update subscription error:', error);
-    res.status(500).json({ 
-      error: 'Error updating subscription',
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Error updating subscription',
+      code: 'SERVER_ERROR',
       details: error.message
     });
   }

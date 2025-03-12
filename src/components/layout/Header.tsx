@@ -32,14 +32,14 @@ const Header = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 inset-x-0 z-50 transition-all duration-300 py-4 px-6 lg:px-10",
+        "fixed top-0 inset-x-0 z-50 transition-all duration-300 py-3 px-4 sm:py-4 sm:px-6 lg:px-10",
         isScrolled ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-transparent"
       )}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <Link 
           to="/" 
-          className="text-xl font-medium tracking-tight flex items-center transform transition-transform hover:scale-[1.02]"
+          className="text-lg sm:text-xl font-medium tracking-tight flex items-center transform transition-transform hover:scale-[1.02]"
         >
           <span>Bhukta Foods</span>
         </Link>
@@ -140,8 +140,8 @@ const Header = () => {
 
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
-        <div className="md:hidden absolute top-full left-0 w-full bg-white shadow-lg animate-slide-down">
-          <nav className="flex flex-col p-6 space-y-4">
+        <div className="md:hidden fixed top-[60px] left-0 w-full h-[calc(100vh-60px)] bg-white/95 backdrop-blur-sm shadow-lg animate-slide-down overflow-y-auto">
+          <nav className="flex flex-col p-4 sm:p-6 space-y-3">
             <Link 
               to="/" 
               className={cn(

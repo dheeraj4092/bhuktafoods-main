@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Management - Admin Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+</head>
+<body class="bg-gray-100">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-md">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-8">
+                    <h1 class="text-xl font-bold">Admin Dashboard</h1>
+                    <a href="#" class="text-gray-600 hover:text-gray-900" onclick="showSection('products')">Products</a>
+                    <a href="#" class="text-gray-600 hover:text-gray-900" onclick="showSection('inventory')">Inventory</a>
+                    <a href="#" class="text-gray-600 hover:text-gray-900" onclick="showSection('variations')">Variations</a>
+                </div>
+                <div id="userInfo" class="text-sm text-gray-600"></div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Products List Section -->
+        <div id="products" class="section mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Products List</h2>
+                <button onclick="showModal('addProductModal')" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Add New Product
+                </button>
+            </div>
+
+            <!-- Products Table -->
+            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Image</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Products will be loaded here -->
+                    </tbody>
+                </table>
+                <div class="px-6 py-4 bg-gray-50">
+                    <div class="flex justify-between items-center">
+                        <div class="text-sm text-gray-500">
+                            Showing <span id="productCount">0</span> products
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="prevPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Previous</button>
+                            <span id="currentPage" class="px-3 py-1">Page 1</span>
+                            <button id="nextPage" class="px-3 py-1 bg-gray-200 rounded hover:bg-gray-300">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Management Section -->
+        <div id="inventory" class="section hidden">
+            <h2 class="text-2xl font-bold mb-6">Inventory Management</h2>
+            
+            <!-- Low Stock Alerts -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <h3 class="text-xl font-semibold mb-4">Low Stock Alerts</h3>
+                <div id="lowStockAlerts" class="space-y-4">
+                    <!-- Low stock alerts will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Bulk Stock Update -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h3 class="text-xl font-semibold mb-4">Bulk Stock Update</h3>
+                <form id="bulkStockForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Category</label>
+                            <select name="category" class="w-full p-2 border rounded">
+                                <option value="">Select Category</option>
+                                <option value="snacks">Snacks</option>
+                                <option value="beverages">Beverages</option>
+                                <option value="desserts">Desserts</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Operation</label>
+                            <select name="operation" class="w-full p-2 border rounded">
+                                <option value="increment">Increment</option>
+                                <option value="decrement">Decrement</option>
+                                <option value="set">Set to Value</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Amount</label>
+                            <input type="number" name="amount" required class="w-full p-2 border rounded">
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            Update Stock
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Product Variations Section -->
+        <div id="variations" class="section hidden">
+            <h2 class="text-2xl font-bold mb-6">Product Variations</h2>
+            
+            <!-- Variations List -->
+            <div class="bg-white p-6 rounded-lg shadow-md mb-8">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">Variations List</h3>
+                    <button onclick="showModal('addVariationModal')" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        Add Variation
+                    </button>
+                </div>
+                <div id="variationsList" class="space-y-4">
+                    <!-- Variations will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold mb-4">Add New Product</h3>
+                    <form id="addProductForm" class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Name</label>
+                                <input type="text" name="name" required class="w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Category</label>
+                                <select name="category" required class="w-full p-2 border rounded">
+                                    <option value="snacks">Snacks</option>
+                                    <option value="beverages">Beverages</option>
+                                    <option value="desserts">Desserts</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Price ($)</label>
+                                <input type="number" name="price" required step="0.01" min="0" class="w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Stock Quantity</label>
+                                <input type="number" name="stock" required min="0" class="w-full p-2 border rounded" placeholder="Enter initial stock">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium mb-1">Description</label>
+                                <textarea name="description" rows="3" required class="w-full p-2 border rounded"></textarea>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium mb-1">Product Image</label>
+                                <input type="file" name="image" accept="image/*" required class="w-full p-2 border rounded">
+                            </div>
+                            <div class="col-span-2 flex space-x-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="isAvailable" class="mr-2">
+                                    Available
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="isPreOrder" class="mr-2">
+                                    Pre-Order
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-4">
+                            <button type="button" onclick="hideModal('addProductModal')" class="px-4 py-2 border rounded">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                Add Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Variation Modal -->
+    <div id="addVariationModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold mb-4">Add Product Variation</h3>
+                    <form id="addVariationForm" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Product</label>
+                            <select name="productId" required class="w-full p-2 border rounded">
+                                <!-- Products will be loaded here -->
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Variation Name</label>
+                            <input type="text" name="name" required class="w-full p-2 border rounded">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Price</label>
+                                <input type="number" name="price" required step="0.01" class="w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Stock</label>
+                                <input type="number" name="stock" required class="w-full p-2 border rounded">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-1">Attributes (JSON)</label>
+                            <textarea name="attributes" rows="3" class="w-full p-2 border rounded"></textarea>
+                        </div>
+                        <div class="flex justify-end space-x-4">
+                            <button type="button" onclick="hideModal('addVariationModal')" class="px-4 py-2 border rounded">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                                Add Variation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product Modal -->
+    <div id="editProductModal" class="fixed inset-0 bg-black bg-opacity-50 hidden">
+        <div class="flex items-center justify-center min-h-screen px-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full">
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold mb-4">Edit Product</h3>
+                    <form id="editProductForm" class="space-y-4" enctype="multipart/form-data">
+                        <input type="hidden" name="productId">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Name</label>
+                                <input type="text" name="name" required class="w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Category</label>
+                                <select name="category" required class="w-full p-2 border rounded">
+                                    <option value="snacks">Snacks</option>
+                                    <option value="beverages">Beverages</option>
+                                    <option value="desserts">Desserts</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Price</label>
+                                <input type="number" name="price" required step="0.01" class="w-full p-2 border rounded">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium mb-1">Stock</label>
+                                <input type="number" name="stock" required class="w-full p-2 border rounded">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium mb-1">Description</label>
+                                <textarea name="description" rows="3" required class="w-full p-2 border rounded"></textarea>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-sm font-medium mb-1">Product Image</label>
+                                <input type="file" name="image" accept="image/*" class="w-full p-2 border rounded">
+                                <p class="text-sm text-gray-500 mt-1">Leave empty to keep current image</p>
+                            </div>
+                            <div class="col-span-2 flex space-x-4">
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="isAvailable" value="true" class="mr-2">
+                                    Available
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="checkbox" name="isPreOrder" value="true" class="mr-2">
+                                    Pre-Order
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex justify-end space-x-4">
+                            <button type="button" onclick="hideModal('editProductModal')" class="px-4 py-2 border rounded">
+                                Cancel
+                            </button>
+                            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                Update Product
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = '/api/products';
+        let authToken = localStorage.getItem('authToken');
+        let currentPage = 1;
+        let totalPages = 1;
+
+        // Show notification
+        function showNotification(message, type = 'success') {
+            Toastify({
+                text: message,
+                duration: 3000,
+                gravity: "top",
+                position: "right",
+                backgroundColor: type === 'success' ? "#48BB78" : "#F56565"
+            }).showToast();
+        }
+
+        // Show/hide sections
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById(sectionId).classList.remove('hidden');
+            
+            if (sectionId === 'products') {
+                loadProducts();
+            } else if (sectionId === 'inventory') {
+                loadLowStockAlerts();
+            } else if (sectionId === 'variations') {
+                loadVariations();
+            }
+        }
+
+        // Modal functions
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // API calls with error handling
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            try {
+                const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    ...(body && { body: JSON.stringify(body) })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.message || 'API request failed');
+                }
+
+                return await response.json();
+            } catch (error) {
+                showNotification(error.message, 'error');
+                throw error;
+            }
+        }
+
+        // Load products with pagination
+        async function loadProducts() {
+            try {
+                const data = await apiCall(`?page=${currentPage}&limit=10`);
+                const tbody = document.getElementById('productsTableBody');
+                tbody.innerHTML = '';
+
+                data.products.forEach(product => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td class="px-6 py-4">
+                                <img src="${product.image_url}" alt="${product.name}" class="h-12 w-12 object-cover rounded">
+                            </td>
+                            <td class="px-6 py-4">${product.name}</td>
+                            <td class="px-6 py-4">${product.category}</td>
+                            <td class="px-6 py-4">$${product.price}</td>
+                            <td class="px-6 py-4">
+                                <span class="${product.stock <= product.low_stock_threshold ? 'text-red-500' : ''}">${product.stock}</span>
+                            </td>
+                            <td class="px-6 py-4">
+                                <button onclick="editProduct('${product.id}')" class="text-blue-500 hover:text-blue-700 mr-2">Edit</button>
+                                <button onclick="deleteProduct('${product.id}')" class="text-red-500 hover:text-red-700">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                document.getElementById('productCount').textContent = data.pagination.total;
+                totalPages = data.pagination.totalPages;
+                document.getElementById('currentPage').textContent = `Page ${currentPage}`;
+                document.getElementById('prevPage').disabled = currentPage === 1;
+                document.getElementById('nextPage').disabled = currentPage === totalPages;
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
+
+        // Load low stock alerts
+        async function loadLowStockAlerts() {
+            try {
+                const data = await apiCall('/admin/low-stock');
+                const alertsContainer = document.getElementById('lowStockAlerts');
+                alertsContainer.innerHTML = '';
+
+                data.forEach(product => {
+                    alertsContainer.innerHTML += `
+                        <div class="flex justify-between items-center p-4 bg-red-50 border border-red-200 rounded">
+                            <div>
+                                <h4 class="font-semibold">${product.name}</h4>
+                                <p class="text-sm text-gray-600">Current stock: ${product.stock}</p>
+                            </div>
+                            <button onclick="updateStock('${product.id}')" class="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">
+                                Restock
+                            </button>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading low stock alerts:', error);
+            }
+        }
+
+        // Load variations
+        async function loadVariations() {
+            try {
+                const products = await apiCall('/variations');
+                const variationsList = document.getElementById('variationsList');
+                variationsList.innerHTML = '';
+
+                products.forEach(product => {
+                    const variations = product.variations || [];
+                    variationsList.innerHTML += `
+                        <div class="border rounded p-4 mb-4">
+                            <h4 class="font-semibold mb-2">${product.name}</h4>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                ${variations.map(v => `
+                                    <div class="bg-gray-50 p-3 rounded">
+                                        <div class="font-medium">${v.name}</div>
+                                        <div class="text-sm text-gray-600">Price: $${v.price}</div>
+                                        <div class="text-sm text-gray-600">Stock: ${v.stock}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('Error loading variations:', error);
+            }
+        }
+
+        // Form submissions
+        document.getElementById('addProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const formData = new FormData(e.target);
+                const response = await fetch(`${API_BASE_URL}`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) throw new Error('Failed to add product');
+
+                showNotification('Product added successfully');
+                hideModal('addProductModal');
+                loadProducts();
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        });
+
+        document.getElementById('bulkStockForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const formData = new FormData(e.target);
+                const data = await apiCall('/bulk-stock-update', 'POST', {
+                    category: formData.get('category'),
+                    operation: formData.get('operation'),
+                    amount: parseInt(formData.get('amount'))
+                });
+
+                showNotification('Stock updated successfully');
+                loadProducts();
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        });
+
+        // Edit product
+        async function editProduct(productId) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${productId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+                
+                if (!response.ok) throw new Error('Failed to fetch product');
+                
+                const product = await response.json();
+                const form = document.getElementById('editProductForm');
+                
+                // Fill form with product data
+                form.querySelector('[name="productId"]').value = product.id;
+                form.querySelector('[name="name"]').value = product.name;
+                form.querySelector('[name="description"]').value = product.description;
+                form.querySelector('[name="price"]').value = product.price;
+                form.querySelector('[name="category"]').value = product.category;
+                form.querySelector('[name="stock"]').value = product.stock;
+                form.querySelector('[name="isAvailable"]').checked = product.is_available;
+                form.querySelector('[name="isPreOrder"]').checked = product.is_pre_order;
+                
+                showModal('editProductModal');
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // Handle edit product form submission
+        document.getElementById('editProductForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+                const formData = new FormData(e.target);
+                const productId = formData.get('productId');
+                
+                // Ensure boolean values are properly set
+                formData.set('isAvailable', formData.get('isAvailable') === 'on');
+                formData.set('isPreOrder', formData.get('isPreOrder') === 'on');
+                
+                const response = await fetch(`${API_BASE_URL}/${productId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to update product');
+                }
+
+                showNotification('Product updated successfully');
+                hideModal('editProductModal');
+                loadProducts();
+            } catch (error) {
+                console.error('Error updating product:', error);
+                showNotification(error.message, 'error');
+            }
+        });
+
+        // Delete product
+        async function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/${productId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to delete product');
+
+                showNotification('Product deleted successfully');
+                loadProducts();
+            } catch (error) {
+                showNotification(error.message, 'error');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            showSection('products');
+            
+            // Set up form submission handlers
+            document.getElementById('editProductForm').addEventListener('submit', updateProduct);
+            
+            // Set up modal close handlers
+            document.querySelectorAll('[onclick="hideModal(\'editProductModal\')"]').forEach(button => {
+                button.addEventListener('click', () => {
+                    document.getElementById('editProductModal').classList.add('hidden');
+                });
+            });
+        });
+
+        // Pagination handlers
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                loadProducts();
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                loadProducts();
+            }
+        });
+    </script>
+</body>
+</html> 

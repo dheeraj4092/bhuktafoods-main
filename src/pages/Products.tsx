@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation, Link } from "react-router-dom";
-import { Filter, SlidersHorizontal } from "lucide-react";
+import { Filter, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -120,26 +120,35 @@ const ProductsPage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
+      <main className="flex-1 container py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Filters */}
-          <div className="lg:w-64">
-            <div className="lg:sticky lg:top-8">
+          <div className="lg:w-64 order-2 lg:order-1">
+            <div className="lg:sticky lg:top-24">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium">Filters</h2>
+                <h2 className="text-base sm:text-lg font-medium">Filters</h2>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="lg:hidden"
+                  className="lg:hidden flex items-center"
                   onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
                 >
-                  <Filter className="h-4 w-4 mr-2" />
-                  {mobileFiltersOpen ? 'Hide Filters' : 'Show Filters'}
+                  {mobileFiltersOpen ? (
+                    <>
+                      <X className="h-4 w-4 mr-2" />
+                      Hide Filters
+                    </>
+                  ) : (
+                    <>
+                      <SlidersHorizontal className="h-4 w-4 mr-2" />
+                      Show Filters
+                    </>
+                  )}
                 </Button>
               </div>
               
-              <div className={`lg:block ${mobileFiltersOpen ? 'block' : 'hidden'}`}>
-                <div className="space-y-6">
+              <div className={`lg:block ${mobileFiltersOpen ? 'block bg-white/95 backdrop-blur-sm lg:bg-transparent fixed inset-0 top-[60px] z-40 p-6 lg:p-0 overflow-y-auto' : 'hidden'}`}>
+                <div className="space-y-6 max-w-sm mx-auto lg:max-w-none">
                   <div>
                     <h3 className="font-medium mb-3">Category</h3>
                     <div className="space-y-2">
@@ -239,42 +248,50 @@ const ProductsPage = () => {
           </div>
           
           {/* Products Grid */}
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-2xl font-medium">
+          <div className="flex-1 order-1 lg:order-2">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+              <h1 className="text-xl sm:text-2xl font-medium">
                 {activeFilters.category === "all" 
                   ? "All Products" 
                   : activeFilters.category === "snacks"
                     ? "Traditional Snacks"
                     : "Fresh Foods"}
               </h1>
-              <p className="text-sm text-muted-foreground">{products.length} items</p>
+              <div className="flex items-center text-sm text-muted-foreground">
+                <span>{products.length} products</span>
+              </div>
             </div>
             
-            {products.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {products.map(product => (
-                  <div key={product.id} className="relative group">
-                    <Link 
-                      to={`/products/${product.id}`}
-                      className="block"
-                    >
-                      <ProductCard {...product} />
-                    </Link>
-                  </div>
-                ))}
+            {products.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No products found matching your criteria.</p>
               </div>
             ) : (
-              <div className="text-center py-12">
-                <SlidersHorizontal size={40} className="mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No products found</h3>
-                <p className="text-muted-foreground">Try adjusting your filters</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                {products.map((product) => (
+                  <Link 
+                    key={product.id} 
+                    to={`/products/${product.id}`}
+                    className="block transform transition-transform hover:scale-[1.02]"
+                  >
+                    <ProductCard
+                      id={product.id}
+                      name={product.name}
+                      description={product.description}
+                      price={product.price}
+                      image={product.image}
+                      category={product.category}
+                      isAvailable={product.stock_quantity > 0}
+                      isPreOrder={product.stock_quantity === 0}
+                      deliveryEstimate={product.delivery_estimate}
+                    />
+                  </Link>
+                ))}
               </div>
             )}
           </div>
         </div>
       </main>
-      
       <Footer />
       <FloatingCart />
     </div>

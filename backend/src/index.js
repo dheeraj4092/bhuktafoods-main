@@ -14,7 +14,7 @@ import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
-import { errorHandler } from './middleware/errorMiddleware.js';
+import { errorHandler, notFoundHandler } from './middleware/errorMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,11 +31,6 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Serve static files
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Root route
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to Snackolicious Delights API' });
-});
 
 // API routes
 app.use('/api/products', productRoutes);
@@ -54,6 +49,14 @@ app.get('/admin', (req, res) => {
 app.get('/admin/login', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
 });
+
+// Root route
+app.get('/', (req, res) => {
+  res.json({ message: 'Welcome to Snackolicious Delights API' });
+});
+
+// Handle 404s
+app.use(notFoundHandler);
 
 // Error handling
 app.use(errorHandler);
