@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation, Link } from "react-router-dom";
 import { Filter, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FloatingCart from "@/components/ui/FloatingCart";
 import ProductCard from "@/components/ui/ProductCard";
+import PincodeCheck from "@/components/ui/PincodeCheck";
 
 const ProductsPage = () => {
   const location = useLocation();
@@ -23,21 +24,39 @@ const ProductsPage = () => {
     sortBy: "newest"
   });
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [isDeliveryAvailable, setIsDeliveryAvailable] = useState<boolean | null>(null);
 
   // Fetch products from API
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        console.log('Fetching products from API...');
         const response = await fetch('http://localhost:5001/api/products');
+        console.log('API Response status:', response.status);
+        
         if (!response.ok) {
           throw new Error('Failed to fetch products');
         }
         const data = await response.json();
-        setProducts(data.products);
+        console.log('API Response data:', data);
+        
+        // Check if data is an array
+        if (Array.isArray(data)) {
+          console.log('Setting products array:', data);
+          setProducts(data);
+        } else if (data.products && Array.isArray(data.products)) {
+          // Handle case where data has a products property
+          console.log('Setting products from data.products:', data.products);
+          setProducts(data.products);
+        } else {
+          console.warn('Invalid products data format:', data);
+          setProducts([]);
+        }
       } catch (err) {
         console.error('Error fetching products:', err);
         setError(err.message);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -45,46 +64,64 @@ const ProductsPage = () => {
 
     fetchProducts();
   }, []);
-  
-  // Apply filters whenever activeFilters change
-  useEffect(() => {
-    let filteredProducts = [...products];
+
+  // Memoize filtered products
+  const filteredProducts = useMemo(() => {
+    console.log('Filtering products:', products);
+    if (!products || !Array.isArray(products)) {
+      console.warn('Products is not an array:', products);
+      return [];
+    }
+    
+    let filtered = [...products];
+    console.log('Initial filtered products:', filtered);
     
     // Filter by category
     if (activeFilters.category !== "all") {
-      filteredProducts = filteredProducts.filter(
+      filtered = filtered.filter(
         product => product.category === activeFilters.category
       );
+      console.log('After category filter:', filtered);
     }
     
     // Filter by availability
     if (activeFilters.availability === "available") {
-      filteredProducts = filteredProducts.filter(product => product.stock_quantity > 0);
+      filtered = filtered.filter(product => product.stock_quantity > 0);
     } else if (activeFilters.availability === "preorder") {
-      filteredProducts = filteredProducts.filter(product => product.stock_quantity === 0);
+      filtered = filtered.filter(product => product.stock_quantity === 0);
     }
+    console.log('After availability filter:', filtered);
     
     // Sort products
     if (activeFilters.sortBy === "price-low") {
-      filteredProducts.sort((a, b) => a.price - b.price);
+      filtered.sort((a, b) => a.price - b.price);
     } else if (activeFilters.sortBy === "price-high") {
-      filteredProducts.sort((a, b) => b.price - a.price);
+      filtered.sort((a, b) => b.price - a.price);
     } else if (activeFilters.sortBy === "newest") {
-      filteredProducts.sort((a, b) => {
+      filtered.sort((a, b) => {
         const dateA = new Date(a.created_at || 0);
         const dateB = new Date(b.created_at || 0);
         return dateB.getTime() - dateA.getTime();
       });
     }
+    console.log('Final filtered products:', filtered);
     
-    setProducts(filteredProducts);
-  }, [activeFilters]);
+    return filtered;
+  }, [products, activeFilters]);
   
   const updateFilter = (filterType, value) => {
     setActiveFilters(prev => ({
       ...prev,
       [filterType]: value
     }));
+  };
+
+  const handleDeliveryAvailable = () => {
+    setIsDeliveryAvailable(true);
+  };
+
+  const handleDeliveryUnavailable = () => {
+    setIsDeliveryAvailable(false);
   };
 
   if (loading) {
@@ -121,6 +158,16 @@ const ProductsPage = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       <main className="flex-1 container py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
+        {/* Show PincodeCheck for Fresh Foods and Subscriptions */}
+        {(activeFilters.category === "fresh" || location.pathname === "/subscription") && (
+          <div className="mb-8">
+            <PincodeCheck
+              onDeliveryAvailable={handleDeliveryAvailable}
+              onDeliveryUnavailable={handleDeliveryUnavailable}
+            />
+          </div>
+        )}
+
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
           {/* Filters */}
           <div className="lg:w-64 order-2 lg:order-1">
@@ -258,17 +305,17 @@ const ProductsPage = () => {
                     : "Fresh Foods"}
               </h1>
               <div className="flex items-center text-sm text-muted-foreground">
-                <span>{products.length} products</span>
+                <span>{filteredProducts.length} products</span>
               </div>
             </div>
             
-            {products.length === 0 ? (
+            {filteredProducts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground">No products found matching your criteria.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {products.map((product) => (
+                {filteredProducts.map((product) => (
                   <Link 
                     key={product.id} 
                     to={`/products/${product.id}`}

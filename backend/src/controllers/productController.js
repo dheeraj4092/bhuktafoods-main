@@ -3,17 +3,10 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../config/supabase.js';
 
-// Configure multer for image upload
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${uuidv4()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  }
-});
+// Configure multer for memory storage (for Supabase upload)
+const storage = multer.memoryStorage();
 
+// Configure multer middleware
 const upload = multer({
   storage,
   limits: {
@@ -29,182 +22,148 @@ const upload = multer({
   }
 });
 
-export const uploadMiddleware = upload.single('image');
+// Export the configured multer middleware
+export const uploadMiddleware = upload;
 
-// Get all products with search and filtering
+// Get all products
 export const getProducts = async (req, res) => {
   try {
-    const {
-      search,
-      category,
-      minPrice,
-      maxPrice,
-      sortBy,
-      sortOrder = 'asc',
-      page = 1,
-      limit = 10
-    } = req.query;
-
-    // Validate numeric inputs
-    const validatedPage = Math.max(1, parseInt(page) || 1);
-    const validatedLimit = Math.min(50, Math.max(1, parseInt(limit) || 10));
-    const validatedMinPrice = minPrice ? Math.max(0, parseFloat(minPrice)) : null;
-    const validatedMaxPrice = maxPrice ? Math.max(0, parseFloat(maxPrice)) : null;
-
-    // Validate sort order
-    const validatedSortOrder = ['asc', 'desc'].includes(sortOrder.toLowerCase()) ? sortOrder.toLowerCase() : 'asc';
-
-    // Validate sortBy field
-    const validSortFields = ['name', 'price', 'created_at', 'category', 'stock_quantity'];
-    const validatedSortBy = validSortFields.includes(sortBy) ? sortBy : 'created_at';
-
-    let query = supabase
+    const { data: products, error } = await supabase
       .from('products')
-      .select('*', { count: 'exact' });
-
-    // Apply search filter
-    if (search) {
-      const searchTerm = search.trim();
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
-      }
-    }
-
-    // Apply category filter
-    if (category) {
-      query = query.eq('category', category.trim());
-    }
-
-    // Apply price range filter
-    if (validatedMinPrice !== null) {
-      query = query.gte('price', validatedMinPrice);
-    }
-    if (validatedMaxPrice !== null) {
-      query = query.lte('price', validatedMaxPrice);
-    }
-
-    // Apply sorting
-    query = query.order(validatedSortBy, { ascending: validatedSortOrder === 'asc' });
-
-    // Apply pagination
-    const start = (validatedPage - 1) * validatedLimit;
-    const end = start + validatedLimit - 1;
-    query = query.range(start, end);
-
-    // Execute query
-    const { data: products, error, count } = await query;
+      .select('*')
+      .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Database query error:', error);
-      return res.status(500).json({
+      console.error('Get products error:', error);
+      return res.status(500).json({ 
         error: 'Database error',
-        message: 'Error fetching products',
-        code: 'DB_ERROR',
-        details: error.message
+        message: 'Failed to fetch products'
       });
     }
 
-    // Return empty array if no products found
-    if (!products) {
-      return res.json({
-        products: [],
-        pagination: {
-          total: 0,
-          page: validatedPage,
-          limit: validatedLimit,
-          totalPages: 0
-        }
-      });
-    }
-
-    // Calculate pagination info
-    const totalPages = Math.ceil((count || 0) / validatedLimit);
-
-    res.json({
-      products,
-      pagination: {
-        total: count || 0,
-        page: validatedPage,
-        limit: validatedLimit,
-        totalPages,
-        hasMore: validatedPage < totalPages
-      },
-      filters: {
-        search: search || null,
-        category: category || null,
-        minPrice: validatedMinPrice,
-        maxPrice: validatedMaxPrice,
-        sortBy: validatedSortBy,
-        sortOrder: validatedSortOrder
-      }
-    });
+    res.json(products || []);
   } catch (error) {
     console.error('Get products error:', error);
-    res.status(500).json({
+    res.status(500).json({ 
       error: 'Server error',
-      message: 'Error fetching products',
-      code: 'SERVER_ERROR',
-      details: error.message
+      message: 'Failed to fetch products'
     });
   }
 };
 
-// Get single product
-export const getProduct = async (req, res) => {
+// Check if product exists
+export const checkProductExists = async (id) => {
   try {
-    const { id } = req.params;
-
-    const { data: product, error } = await supabase
+    console.log('Checking if product exists:', id);
+    const { data, error } = await supabase
       .from('products')
-      .select(`
-        *,
-        product_reviews (
-          id,
-          rating,
-          comment,
-          created_at,
-          profiles (
-            id,
-            full_name
-          )
-        )
-      `)
+      .select('id')
       .eq('id', id)
       .single();
 
-    if (error) throw error;
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+    if (error) {
+      console.error('Check product exists error:', error);
+      return false;
     }
 
-    res.json(product);
+    console.log('Product exists:', data);
+    return true;
   } catch (error) {
-    console.error('Get product error:', error);
-    res.status(500).json({ error: 'Error fetching product' });
+    console.error('Check product exists error:', error);
+    return false;
   }
 };
 
-// Create product
+// Get product by ID
+export const getProduct = async (req, res) => {
+  try {
+    console.log('getProduct called with params:', req.params);
+    console.log('getProduct headers:', req.headers);
+    
+    const { id } = req.params;
+
+    // Validate ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!id || !uuidRegex.test(id)) {
+      console.log('Invalid UUID format:', id);
+      return res.status(400).json({ 
+        error: 'Invalid product ID',
+        message: 'Please provide a valid product ID'
+      });
+    }
+
+    // Check if product exists
+    const exists = await checkProductExists(id);
+    if (!exists) {
+      console.log('Product does not exist:', id);
+      return res.status(404).json({ 
+        error: 'Product not found',
+        message: 'The requested product does not exist'
+      });
+    }
+
+    console.log('Fetching product with ID:', id);
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Get product error:', error);
+      if (error.code === 'PGRST116') {
+        return res.status(404).json({ 
+          error: 'Product not found',
+          message: 'The requested product does not exist'
+        });
+      }
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to fetch product'
+      });
+    }
+
+    console.log('Product found:', product);
+    res.json(product);
+  } catch (error) {
+    console.error('Get product error:', error);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to fetch product'
+    });
+  }
+};
+
+// Create product (admin only)
 export const createProduct = async (req, res) => {
   try {
+    // Validate required fields
+    const requiredFields = ['name', 'description', 'price', 'category'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({ 
+        error: 'Missing required fields',
+        message: `Please provide: ${missingFields.join(', ')}`
+      });
+    }
+
     const {
       name,
       description,
       price,
       category,
-      stock_quantity,
-      isAvailable,
-      isPreOrder
+      stock_quantity = 0,
+      is_available = true,
+      is_pre_order = false
     } = req.body;
 
     // Handle image upload
     let image_url = null;
     if (req.file) {
-      // Upload image to Supabase Storage
       const fileExt = path.extname(req.file.originalname);
-      const fileName = `${uuidv4()}${fileExt}`;
-      const filePath = `product-images/${fileName}`;
+      const fileName = `product-${uuidv4()}${fileExt}`;
+      const filePath = `products/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('product-images')
@@ -212,9 +171,14 @@ export const createProduct = async (req, res) => {
           contentType: req.file.mimetype
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('Image upload error:', uploadError);
+        return res.status(500).json({ 
+          error: 'Upload failed',
+          message: 'Failed to upload product image'
+        });
+      }
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('product-images')
         .getPublicUrl(filePath);
@@ -228,128 +192,218 @@ export const createProduct = async (req, res) => {
         {
           name,
           description,
-          price,
+          price: parseFloat(price),
           category,
-          stock_quantity,
           image_url,
-          is_available: isAvailable === 'true',
-          is_pre_order: isPreOrder === 'true'
+          stock_quantity: parseInt(stock_quantity),
+          is_available: is_available === 'true' || is_available === true,
+          is_pre_order: is_pre_order === 'true' || is_pre_order === true
         }
       ])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Create product error:', error);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to create product'
+      });
+    }
 
     res.status(201).json(product);
   } catch (error) {
     console.error('Create product error:', error);
-    res.status(500).json({ error: 'Error creating product' });
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to create product'
+    });
   }
 };
 
-// Update product
+// Update product (admin only)
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Validate ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!id || !uuidRegex.test(id)) {
+      return res.status(400).json({ 
+        error: 'Invalid product ID',
+        message: 'Please provide a valid product ID'
+      });
+    }
+
+    // Check if product exists
+    const { data: existingProduct, error: checkError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (checkError) {
+      console.error('Product check error:', checkError);
+      if (checkError.code === 'PGRST116') {
+        return res.status(404).json({ 
+          error: 'Product not found',
+          message: 'The requested product does not exist'
+        });
+      }
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to check product existence'
+      });
+    }
+
     const {
       name,
       description,
       price,
       category,
-      stock_quantity
+      stock_quantity,
+      is_available,
+      is_pre_order
     } = req.body;
 
     // Handle image upload
-    let image_url = null;
+    let image_url = undefined;
     if (req.file) {
-      // Upload image to Supabase Storage
-      const fileExt = path.extname(req.file.originalname);
-      const fileName = `${uuidv4()}${fileExt}`;
-      const filePath = `product-images/${fileName}`;
+      try {
+        // Delete old image if it exists
+        if (existingProduct.image_url) {
+          const oldPath = existingProduct.image_url.split('/').slice(-2).join('/');
+          await supabase.storage
+            .from('product-images')
+            .remove([oldPath]);
+        }
 
-      const { error: uploadError } = await supabase.storage
-        .from('product-images')
-        .upload(filePath, req.file.buffer, {
-          contentType: req.file.mimetype
+        // Upload new image
+        const fileExt = path.extname(req.file.originalname);
+        const fileName = `product-${uuidv4()}${fileExt}`;
+        const filePath = `products/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(filePath, req.file.buffer, {
+            contentType: req.file.mimetype,
+            cacheControl: '3600'
+          });
+
+        if (uploadError) {
+          console.error('Image upload error:', uploadError);
+          return res.status(500).json({ 
+            error: 'Upload failed',
+            message: 'Failed to upload product image'
+          });
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('product-images')
+          .getPublicUrl(filePath);
+
+        image_url = publicUrl;
+      } catch (uploadError) {
+        console.error('Error handling image:', uploadError);
+        return res.status(500).json({ 
+          error: 'Upload failed',
+          message: 'Failed to process product image'
         });
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(filePath);
-
-      image_url = publicUrl;
+      }
     }
 
-    const { data: product, error } = await supabase
+    // Prepare update data
+    const updateData = {
+      name,
+      description,
+      price: price ? parseFloat(price) : undefined,
+      category,
+      stock_quantity: stock_quantity ? parseInt(stock_quantity) : undefined,
+      is_available: is_available !== undefined ? (is_available === 'true' || is_available === true) : undefined,
+      is_pre_order: is_pre_order !== undefined ? (is_pre_order === 'true' || is_pre_order === true) : undefined,
+      updated_at: new Date().toISOString()
+    };
+
+    // Only update image_url if we have a new one
+    if (image_url !== undefined) {
+      updateData.image_url = image_url;
+    }
+
+    const { data: product, error: updateError } = await supabase
       .from('products')
-      .update({
-        name,
-        description,
-        price,
-        category,
-        stock_quantity,
-        ...(image_url && { image_url }),
-        updated_at: new Date().toISOString()
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+    if (updateError) {
+      console.error('Update product error:', updateError);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to update product'
+      });
     }
 
     res.json(product);
   } catch (error) {
     console.error('Update product error:', error);
-    res.status(500).json({ error: 'Error updating product' });
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to update product'
+    });
   }
 };
 
-// Delete product
+// Delete product (admin only)
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Get product to delete image
-    const { data: product, error: fetchError } = await supabase
+    // Validate ID format (UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!id || !uuidRegex.test(id)) {
+      return res.status(400).json({ 
+        error: 'Invalid product ID',
+        message: 'Please provide a valid product ID'
+      });
+    }
+
+    // Get current product to delete image if it exists
+    const { data: product } = await supabase
       .from('products')
       .select('image_url')
       .eq('id', id)
       .single();
 
-    if (fetchError) throw fetchError;
+    if (product?.image_url) {
+      // Extract the path from the URL
+      const imagePath = product.image_url.split('/').slice(-2).join('/');
+      // Delete image from storage
+      await supabase.storage
+        .from('product-images')
+        .remove([imagePath]);
+    }
 
-    // Delete product
-    const { error: deleteError } = await supabase
+    const { error } = await supabase
       .from('products')
       .delete()
       .eq('id', id);
 
-    if (deleteError) throw deleteError;
-
-    // Delete image from storage if exists
-    if (product.image_url) {
-      const filePath = product.image_url.split('/').pop();
-      const { error: storageError } = await supabase.storage
-        .from('product-images')
-        .remove([filePath]);
-
-      if (storageError) {
-        console.error('Error deleting image:', storageError);
-      }
+    if (error) {
+      console.error('Delete product error:', error);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to delete product'
+      });
     }
 
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     console.error('Delete product error:', error);
-    res.status(500).json({ error: 'Error deleting product' });
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to delete product'
+    });
   }
 };
 
@@ -358,61 +412,63 @@ export const addProductRating = async (req, res) => {
   try {
     const { id } = req.params;
     const { rating, comment } = req.body;
-    const userId = req.user.id;
+    const user_id = req.user.id;
 
-    // Check if user has already rated this product
-    const { data: existingReview } = await supabase
-      .from('product_reviews')
-      .select('id')
-      .eq('product_id', id)
-      .eq('user_id', userId)
-      .single();
-
-    if (existingReview) {
-      return res.status(400).json({ error: 'You have already rated this product' });
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ 
+        error: 'Invalid rating',
+        message: 'Rating must be between 1 and 5'
+      });
     }
 
-    // Create review
-    const { data: review, error: reviewError } = await supabase
-      .from('product_reviews')
+    const { data: product, error: productError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (productError) {
+      console.error('Product check error:', productError);
+      if (productError.code === 'PGRST116') {
+        return res.status(404).json({ 
+          error: 'Product not found',
+          message: 'The requested product does not exist'
+        });
+      }
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to check product existence'
+      });
+    }
+
+    const { data: ratingData, error: ratingError } = await supabase
+      .from('product_ratings')
       .insert([
         {
           product_id: id,
-          user_id: userId,
-          rating,
+          user_id,
+          rating: parseInt(rating),
           comment
         }
       ])
       .select()
       .single();
 
-    if (reviewError) throw reviewError;
+    if (ratingError) {
+      console.error('Add rating error:', ratingError);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to add rating'
+      });
+    }
 
-    // Update product rating
-    const { data: product, error: productError } = await supabase
-      .from('products')
-      .select('rating, num_reviews')
-      .eq('id', id)
-      .single();
-
-    if (productError) throw productError;
-
-    const newNumReviews = product.num_reviews + 1;
-    const newRating = ((product.rating * product.num_reviews) + rating) / newNumReviews;
-
-    const { error: updateError } = await supabase
-      .from('products')
-      .update({
-        rating: newRating,
-        num_reviews: newNumReviews
-      })
-      .eq('id', id);
-
-    if (updateError) throw updateError;
-
-    res.status(201).json(review);
+    res.status(201).json(ratingData);
   } catch (error) {
     console.error('Add rating error:', error);
-    res.status(500).json({ error: 'Error adding rating' });
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to add rating'
+    });
   }
 }; 

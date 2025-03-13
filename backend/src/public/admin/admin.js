@@ -859,27 +859,15 @@ async function editProduct(productId) {
             throw new Error('Edit product form not found in the DOM');
         }
 
-        // Safely set form values with null checks
-        const setFormValue = (name, value) => {
-            const element = form.querySelector(`[name="${name}"]`);
-            if (element) {
-                if (element.type === 'checkbox') {
-                    element.checked = value || false;
-                } else {
-                    element.value = value || '';
-                }
-            }
-        };
-
-        // Set all form values
-        setFormValue('productId', productId);
-        setFormValue('name', product.name);
-        setFormValue('description', product.description);
-        setFormValue('price', product.price);
-        setFormValue('stock', product.stock_quantity);
-        setFormValue('category', product.category || 'snacks');
-        setFormValue('isAvailable', product.is_available);
-        setFormValue('isPreOrder', product.is_pre_order);
+        // Set form values
+        form.querySelector('[name="productId"]').value = productId;
+        form.querySelector('[name="name"]').value = product.name || '';
+        form.querySelector('[name="description"]').value = product.description || '';
+        form.querySelector('[name="price"]').value = product.price || '';
+        form.querySelector('[name="stock_quantity"]').value = product.stock_quantity || '';
+        form.querySelector('[name="category"]').value = product.category || 'snacks';
+        form.querySelector('[name="is_available"]').checked = product.is_available || false;
+        form.querySelector('[name="is_pre_order"]').checked = product.is_pre_order || false;
 
         // Show current image if it exists
         const currentImage = document.getElementById('currentProductImage');
@@ -899,10 +887,23 @@ async function editProduct(productId) {
 
 // Update product function
 async function updateProduct(event) {
+    if (!event) {
+        console.error('Event object is missing');
+        return;
+    }
+    
     event.preventDefault();
     
+    const form = event.target;
+    const submitButton = document.querySelector('button[form="editProductForm"]');
+    if (!submitButton) {
+        console.error('Submit button not found');
+        return;
+    }
+    
+    const originalText = submitButton.innerHTML;
+    
     try {
-        const form = event.target;
         const formData = new FormData(form);
         const productId = formData.get('productId');
 
@@ -911,17 +912,15 @@ async function updateProduct(event) {
         }
 
         // Show loading state
-        const submitButton = form.querySelector('button[type="submit"]');
-        const originalText = submitButton.innerHTML;
         submitButton.disabled = true;
-        submitButton.innerHTML = 'Updating...';
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
 
-        const response = await fetch(`/api/admin/products/${productId}`, {
+        const response = await fetch(`/api/admin/product/${productId}`, {
             method: 'PUT',
             headers: {
                 'Authorization': `Bearer ${token}`
             },
-            body: formData // Using FormData to handle file uploads properly
+            body: formData
         });
         
         if (!response.ok) {
@@ -945,7 +944,6 @@ async function updateProduct(event) {
         showError(error.message || 'Failed to update product');
     } finally {
         // Reset button state
-        const submitButton = form.querySelector('button[type="submit"]');
         submitButton.disabled = false;
         submitButton.innerHTML = originalText;
     }

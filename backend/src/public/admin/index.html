@@ -441,34 +441,55 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="editProductForm">
-                        <input type="hidden" id="editProductId">
+                    <form id="editProductForm" onsubmit="updateProduct(event)">
+                        <input type="hidden" name="productId" id="editProductId">
                         <div class="mb-3">
                             <label class="form-label">Name</label>
-                            <input type="text" class="form-control" id="editProductName" required>
+                            <input type="text" class="form-control" name="name" id="editProductName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Category</label>
+                            <select class="form-control" name="category" id="editProductCategory" required>
+                                <option value="snacks">Snacks</option>
+                                <option value="beverages">Beverages</option>
+                                <option value="desserts">Desserts</option>
+                                <option value="other">Other</option>
+                            </select>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Description</label>
-                            <textarea class="form-control" id="editProductDescription" required></textarea>
+                            <textarea class="form-control" name="description" id="editProductDescription" required></textarea>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Price</label>
-                            <input type="number" class="form-control" id="editProductPrice" step="0.01" required>
+                            <input type="number" class="form-control" name="price" id="editProductPrice" step="0.01" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Stock Quantity</label>
-                            <input type="number" class="form-control" id="editProductStock" required>
+                            <input type="number" class="form-control" name="stock_quantity" id="editProductStock" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Product Image</label>
-                            <input type="file" class="form-control" id="editProductImage" accept="image/*">
+                            <input type="file" class="form-control" name="image" id="editProductImage" accept="image/*">
                             <small class="text-muted">Leave empty to keep the current image</small>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="is_available" id="editProductAvailable">
+                                <label class="form-check-label">Available</label>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="is_pre_order" id="editProductPreOrder">
+                                <label class="form-check-label">Pre-order</label>
+                            </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" onclick="updateProduct()">Save Changes</button>
+                    <button type="submit" form="editProductForm" class="btn btn-primary">Save Changes</button>
                 </div>
             </div>
         </div>

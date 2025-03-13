@@ -15,10 +15,6 @@ if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error('SUPABASE_SERVICE_ROLE_KEY is required');
 }
 
-if (!process.env.JWT_SECRET) {
-  throw new Error('JWT_SECRET is required');
-}
-
 // Regular client for user operations
 export const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -27,8 +23,7 @@ export const supabase = createClient(
     auth: {
       autoRefreshToken: false,
       persistSession: false,
-      detectSessionInUrl: false,
-      jwtSecret: process.env.JWT_SECRET
+      detectSessionInUrl: false
     }
   }
 );
@@ -40,8 +35,7 @@ export const supabaseAdmin = createClient(
   {
     auth: {
       autoRefreshToken: false,
-      persistSession: false,
-      jwtSecret: process.env.JWT_SECRET
+      persistSession: false
     }
   }
 );

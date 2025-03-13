@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
+import NavigationMenuComponent from "./NavigationMenu";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -46,60 +47,7 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-10">
-          <Link 
-            to="/" 
-            className={cn(
-              "text-sm font-medium transition-colors",
-              location.pathname === "/" ? "text-food-accent" : "text-foreground hover:text-food-accent"
-            )}
-          >
-            Home
-          </Link>
-          <Link 
-            to="/products?category=snacks" 
-            className={cn(
-              "text-sm font-medium transition-colors",
-              location.pathname.includes("/products") && location.search.includes("category=snacks") 
-                ? "text-food-snack" 
-                : "text-foreground hover:text-food-snack"
-            )}
-          >
-            Traditional Snacks
-          </Link>
-          <Link 
-            to="/products?category=fresh" 
-            className={cn(
-              "text-sm font-medium transition-colors",
-              location.pathname.includes("/products") && location.search.includes("category=fresh") 
-                ? "text-food-fresh" 
-                : "text-foreground hover:text-food-fresh"
-            )}
-          >
-            Fresh Foods
-          </Link>
-          <Link 
-            to="/cart" 
-            className={cn(
-              "text-sm font-medium transition-colors relative",
-              location.pathname === "/cart" ? "text-primary" : "text-foreground hover:text-primary"
-            )}
-          >
-            Cart
-            {items.length > 0 && (
-              <span className="absolute -top-2 -right-2 bg-primary text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                {items.length}
-              </span>
-            )}
-          </Link>
-          <Link 
-            to="/subscription" 
-            className={cn(
-              "text-sm font-medium transition-colors",
-              location.pathname === "/subscription" ? "text-primary" : "text-foreground hover:text-primary"
-            )}
-          >
-            Subscriptions
-          </Link>
+          <NavigationMenuComponent />
         </nav>
 
         {/* Header Actions */}

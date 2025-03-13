@@ -329,6 +329,15 @@ export const subscribeUser = async (req, res) => {
     const { subscription_id } = req.body;
     const user_id = req.user.id;
 
+    // Validate subscription_id format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!subscription_id || !uuidRegex.test(subscription_id)) {
+      return res.status(400).json({ 
+        error: 'Invalid subscription ID format',
+        message: 'Please provide a valid subscription ID'
+      });
+    }
+
     // Set auth context for RLS policies
     const authHeader = req.headers.authorization;
     if (!authHeader) {
@@ -339,7 +348,13 @@ export const subscribeUser = async (req, res) => {
     
     // Get user details from auth
     const { data: { user }, error: userError } = await supabaseAdmin.auth.admin.getUserById(user_id);
-    if (userError) throw userError;
+    if (userError) {
+      console.error('User auth error:', userError);
+      return res.status(500).json({ 
+        error: 'Authentication error',
+        message: 'Failed to verify user'
+      });
+    }
 
     // Check if user profile exists, if not create it
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -365,23 +380,18 @@ export const subscribeUser = async (req, res) => {
         .single();
 
       if (createProfileError) {
-        // If error is duplicate key, try to fetch the profile again
-        if (createProfileError.code === '23505') { // Unique violation
-          const { data: existingProfile, error: fetchError } = await supabaseAdmin
-            .from('profiles')
-            .select('*')
-            .eq('id', user_id)
-            .single();
-          
-          if (fetchError) throw fetchError;
-          if (!existingProfile) throw createProfileError;
-        } else {
-          console.error('Create profile error:', createProfileError);
-          throw createProfileError;
-        }
+        console.error('Create profile error:', createProfileError);
+        return res.status(500).json({ 
+          error: 'Profile creation failed',
+          message: 'Failed to create user profile'
+        });
       }
     } else if (profileError) {
-      throw profileError;
+      console.error('Profile fetch error:', profileError);
+      return res.status(500).json({ 
+        error: 'Profile fetch failed',
+        message: 'Failed to fetch user profile'
+      });
     }
 
     // Set the auth context for subsequent operations
@@ -399,11 +409,18 @@ export const subscribeUser = async (req, res) => {
       .single();
 
     if (checkError && checkError.code !== 'PGRST116') {
-      throw checkError;
+      console.error('Subscription check error:', checkError);
+      return res.status(500).json({ 
+        error: 'Subscription check failed',
+        message: 'Failed to check existing subscriptions'
+      });
     }
 
     if (existingSubscription) {
-      return res.status(400).json({ error: 'User already has an active subscription' });
+      return res.status(400).json({ 
+        error: 'Active subscription exists',
+        message: 'User already has an active subscription'
+      });
     }
 
     // Get subscription details
@@ -413,9 +430,19 @@ export const subscribeUser = async (req, res) => {
       .eq('id', subscription_id)
       .single();
 
-    if (subError) throw subError;
+    if (subError) {
+      console.error('Subscription fetch error:', subError);
+      return res.status(500).json({ 
+        error: 'Subscription fetch failed',
+        message: 'Failed to fetch subscription details'
+      });
+    }
+
     if (!subscription) {
-      return res.status(404).json({ error: 'Subscription plan not found' });
+      return res.status(404).json({ 
+        error: 'Subscription not found',
+        message: 'The requested subscription plan does not exist'
+      });
     }
 
     // Calculate start and end dates
@@ -441,15 +468,18 @@ export const subscribeUser = async (req, res) => {
 
     if (createError) {
       console.error('Create subscription error:', createError);
-      throw createError;
+      return res.status(500).json({ 
+        error: 'Subscription creation failed',
+        message: 'Failed to create user subscription'
+      });
     }
 
     res.status(201).json(userSubscription);
   } catch (error) {
     console.error('Subscribe user error:', error);
     res.status(500).json({ 
-      error: 'Error creating subscription',
-      details: error.message
+      error: 'Internal server error',
+      message: 'An unexpected error occurred while processing your subscription'
     });
   }
 };
@@ -458,7 +488,9 @@ export const subscribeUser = async (req, res) => {
 export const getUserSubscription = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { data: userSubscription, error } = await supabase
+    
+    // Get user's active subscription using admin client
+    const { data: userSubscription, error } = await supabaseAdmin
       .from('user_subscriptions')
       .select(`
         *,
@@ -470,15 +502,22 @@ export const getUserSubscription = async (req, res) => {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return res.status(404).json({ error: 'No active subscription found' });
+        return res.status(404).json({ 
+          error: 'Not found',
+          message: 'No active subscription found'
+        });
       }
-      throw error;
+      console.error('Error fetching user subscription:', error);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to fetch user subscription'
+      });
     }
 
     // Check if subscription has expired
     if (userSubscription && new Date(userSubscription.end_date) < new Date()) {
       // Update subscription status to expired
-      const { error: updateError } = await supabase
+      const { error: updateError } = await supabaseAdmin
         .from('user_subscriptions')
         .update({
           status: 'expired',
@@ -486,14 +525,26 @@ export const getUserSubscription = async (req, res) => {
         })
         .eq('id', userSubscription.id);
 
-      if (updateError) throw updateError;
-      return res.status(404).json({ error: 'No active subscription found' });
+      if (updateError) {
+        console.error('Error updating expired subscription:', updateError);
+        return res.status(500).json({ 
+          error: 'Update error',
+          message: 'Failed to update expired subscription'
+        });
+      }
+      return res.status(404).json({ 
+        error: 'Not found',
+        message: 'No active subscription found'
+      });
     }
 
     res.json(userSubscription);
   } catch (error) {
     console.error('Get user subscription error:', error);
-    res.status(500).json({ error: 'Error fetching user subscription' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'An unexpected error occurred while fetching your subscription'
+    });
   }
 };
 
@@ -501,7 +552,32 @@ export const getUserSubscription = async (req, res) => {
 export const cancelSubscription = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { data: userSubscription, error } = await supabase
+    
+    // First check if user has an active subscription
+    const { data: existingSubscription, error: checkError } = await supabaseAdmin
+      .from('user_subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .single();
+
+    if (checkError) {
+      console.error('Error checking subscription:', checkError);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Error checking subscription status'
+      });
+    }
+
+    if (!existingSubscription) {
+      return res.status(404).json({ 
+        error: 'Not found',
+        message: 'No active subscription found to cancel'
+      });
+    }
+
+    // Update the subscription status
+    const { data: userSubscription, error: updateError } = await supabaseAdmin
       .from('user_subscriptions')
       .update({
         status: 'cancelled',
@@ -516,14 +592,28 @@ export const cancelSubscription = async (req, res) => {
       `)
       .single();
 
-    if (error) throw error;
-    if (!userSubscription) {
-      return res.status(404).json({ error: 'No active subscription found' });
+    if (updateError) {
+      console.error('Error updating subscription:', updateError);
+      return res.status(500).json({ 
+        error: 'Update failed',
+        message: 'Failed to cancel subscription'
+      });
     }
+
+    if (!userSubscription) {
+      return res.status(404).json({ 
+        error: 'Not found',
+        message: 'Subscription not found after update'
+      });
+    }
+
     res.json(userSubscription);
   } catch (error) {
     console.error('Cancel subscription error:', error);
-    res.status(500).json({ error: 'Error cancelling subscription' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'An unexpected error occurred while cancelling your subscription'
+    });
   }
 };
 
@@ -665,31 +755,51 @@ export const pauseSubscription = async (req, res) => {
     const userId = req.user.id;
     const { pause_until } = req.body;
 
-    const pauseDate = new Date(pause_until);
-    if (isNaN(pauseDate.getTime())) {
+    const pauseEndDate = new Date(pause_until);
+    if (isNaN(pauseEndDate.getTime())) {
       return res.status(400).json({ error: 'Invalid pause date' });
     }
+
+    const pauseStartDate = new Date();
 
     const { data: userSubscription, error } = await supabase
       .from('user_subscriptions')
       .update({
         status: 'paused',
-        pause_until: pauseDate.toISOString(),
+        pause_start: pauseStartDate.toISOString(),
+        pause_end: pauseEndDate.toISOString(),
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId)
       .eq('status', 'active')
-      .select()
+      .select(`
+        *,
+        subscription:subscriptions(*)
+      `)
       .single();
 
-    if (error) throw error;
-    if (!userSubscription) {
-      return res.status(404).json({ error: 'No active subscription found' });
+    if (error) {
+      console.error('Pause subscription error:', error);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: error.message 
+      });
     }
+
+    if (!userSubscription) {
+      return res.status(404).json({ 
+        error: 'Not found',
+        message: 'No active subscription found to pause'
+      });
+    }
+
     res.json(userSubscription);
   } catch (error) {
     console.error('Pause subscription error:', error);
-    res.status(500).json({ error: 'Error pausing subscription' });
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'An unexpected error occurred while pausing your subscription'
+    });
   }
 };
 
@@ -718,5 +828,65 @@ export const resumeSubscription = async (req, res) => {
   } catch (error) {
     console.error('Resume subscription error:', error);
     res.status(500).json({ error: 'Error resuming subscription' });
+  }
+};
+
+// Get subscription history for a user
+export const getSubscriptionHistory = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { data: history, error } = await supabase
+      .from('user_subscriptions')
+      .select(`
+        *,
+        subscription:subscriptions(*)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    res.json(history);
+  } catch (error) {
+    console.error('Get subscription history error:', error);
+    res.status(500).json({ error: 'Error fetching subscription history' });
+  }
+};
+
+// Get subscription analytics for a user
+export const getSubscriptionAnalytics = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    const { data: analytics, error } = await supabase
+      .from('user_subscriptions')
+      .select(`
+        *,
+        subscription:subscriptions(*)
+      `)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // Calculate analytics
+    const totalSubscriptions = analytics.length;
+    const activeSubscriptions = analytics.filter(sub => sub.status === 'active').length;
+    const cancelledSubscriptions = analytics.filter(sub => sub.status === 'cancelled').length;
+    const pausedSubscriptions = analytics.filter(sub => sub.status === 'paused').length;
+
+    const analyticsData = {
+      totalSubscriptions,
+      activeSubscriptions,
+      cancelledSubscriptions,
+      pausedSubscriptions,
+      history: analytics
+    };
+
+    res.json(analyticsData);
+  } catch (error) {
+    console.error('Get subscription analytics error:', error);
+    res.status(500).json({ error: 'Error fetching subscription analytics' });
   }
 }; 

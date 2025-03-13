@@ -131,20 +131,29 @@ const Subscription = () => {
             }),
           ]);
 
-          if (userSubResponse.ok) {
-            const userSubData = await userSubResponse.json();
-            setUserSubscription(userSubData);
+          if (!userSubResponse.ok) {
+            console.error('Error fetching active subscription:', await userSubResponse.text());
+            return;
           }
 
-          if (historyResponse.ok) {
-            const historyData = await historyResponse.json();
-            setSubscriptionHistory(historyData);
+          if (!historyResponse.ok) {
+            console.error('Error fetching subscription history:', await historyResponse.text());
+            return;
           }
 
-          if (analyticsResponse.ok) {
-            const analyticsData = await analyticsResponse.json();
-            setAnalytics(analyticsData);
+          if (!analyticsResponse.ok) {
+            console.error('Error fetching subscription analytics:', await analyticsResponse.text());
+            return;
           }
+
+          const userSubData = await userSubResponse.json();
+          setUserSubscription(userSubData);
+
+          const historyData = await historyResponse.json();
+          setSubscriptionHistory(historyData);
+
+          const analyticsData = await analyticsResponse.json();
+          setAnalytics(analyticsData);
         }
       } catch (error) {
         console.error("Error fetching subscription data:", error);
@@ -345,16 +354,23 @@ const Subscription = () => {
 
     setPausing(true);
     try {
+      // Calculate the pause end date
+      const pauseEndDate = new Date();
+      pauseEndDate.setDate(pauseEndDate.getDate() + pauseDuration);
+
       const response = await fetch("http://localhost:5001/api/subscriptions/pause", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ pause_duration_days: pauseDuration }),
+        body: JSON.stringify({ pause_until: pauseEndDate.toISOString() }),
       });
 
-      if (!response.ok) throw new Error("Failed to pause subscription");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to pause subscription");
+      }
 
       const pausedSubscription = await response.json();
       setUserSubscription(pausedSubscription);

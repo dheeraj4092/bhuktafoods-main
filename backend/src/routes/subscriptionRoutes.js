@@ -13,7 +13,9 @@ import {
   renewSubscription,
   changeSubscriptionPlan,
   pauseSubscription,
-  resumeSubscription
+  resumeSubscription,
+  getSubscriptionHistory,
+  getSubscriptionAnalytics
 } from '../controllers/subscriptionController.js';
 import { authenticateToken, isAdmin } from '../middleware/auth.js';
 
@@ -37,10 +39,11 @@ const upload = multer({
 
 // Public routes
 router.get('/', getSubscriptions);
-router.get('/:id', getSubscription);
 
 // User routes (requires authentication)
 router.get('/user/active', authenticateToken, getUserSubscription);
+router.get('/history', authenticateToken, getSubscriptionHistory);
+router.get('/analytics', authenticateToken, getSubscriptionAnalytics);
 router.post('/subscribe', authenticateToken, subscribeUser);
 router.post('/cancel', authenticateToken, cancelSubscription);
 router.post('/auto-renew', authenticateToken, toggleAutoRenewal);
@@ -49,9 +52,12 @@ router.post('/change-plan', authenticateToken, changeSubscriptionPlan);
 router.post('/pause', authenticateToken, pauseSubscription);
 router.post('/resume', authenticateToken, resumeSubscription);
 
-// Admin routes (requires admin role)
+// Admin routes
 router.post('/', authenticateToken, isAdmin, upload.single('image'), createSubscription);
 router.put('/:id', authenticateToken, isAdmin, upload.single('image'), updateSubscription);
 router.delete('/:id', authenticateToken, isAdmin, deleteSubscription);
+
+// Parameterized routes should come last
+router.get('/:id', getSubscription);
 
 export default router; 
