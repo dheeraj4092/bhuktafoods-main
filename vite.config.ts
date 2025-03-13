@@ -22,6 +22,9 @@ export default defineConfig(({ mode }) => ({
   build: {
     sourcemap: true,
     chunkSizeWarningLimit: 1000,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    emptyOutDir: true,
     rollupOptions: {
       output: {
         manualChunks: {
