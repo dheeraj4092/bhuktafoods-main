@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import PincodeCheck from "@/components/ui/PincodeCheck";
 
 interface Subscription {
   id: string;
@@ -102,6 +103,7 @@ const Subscription = () => {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [activeTab, setActiveTab] = useState("plans");
+  const [isDeliveryAvailable, setIsDeliveryAvailable] = useState<boolean | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -439,6 +441,15 @@ const Subscription = () => {
     }
   };
 
+  const handleDeliveryAvailable = () => {
+    setIsDeliveryAvailable(true);
+  };
+
+  const handleDeliveryUnavailable = () => {
+    setIsDeliveryAvailable(false);
+    toast.error("Delivery is not available in your area. Please check back later or contact support.");
+  };
+
   const renderSubscriptionCards = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {subscriptions.map((subscription) => (
@@ -496,7 +507,7 @@ const Subscription = () => {
                   toast.error("Invalid subscription. Please try again.");
                 }
               }}
-              disabled={subscribing || !subscription?.id}
+              disabled={subscribing || !subscription?.id || isDeliveryAvailable === false}
             >
               {subscribing ? (
                 <>
@@ -505,6 +516,8 @@ const Subscription = () => {
                 </>
               ) : userSubscription?.subscription.id === subscription.id ? (
                 "Current Plan"
+              ) : isDeliveryAvailable === false ? (
+                "Delivery Not Available"
               ) : (
                 "Subscribe Now"
               )}
@@ -559,13 +572,14 @@ const Subscription = () => {
             <TableCell>
               {userSubscription?.subscription.id === subscription.id ? (
                 <Badge>Current Plan</Badge>
+              ) : isDeliveryAvailable === false ? (
+                <Badge variant="destructive">Delivery Not Available</Badge>
               ) : (
                 <Badge variant="secondary">Available</Badge>
               )}
             </TableCell>
             <TableCell>
               <Button
-                size="sm"
                 variant={userSubscription?.subscription.id === subscription.id ? "outline" : "default"}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -575,7 +589,7 @@ const Subscription = () => {
                     toast.error("Invalid subscription. Please try again.");
                   }
                 }}
-                disabled={subscribing || !subscription?.id}
+                disabled={subscribing || !subscription?.id || isDeliveryAvailable === false}
               >
                 {subscribing ? (
                   <>
@@ -584,8 +598,10 @@ const Subscription = () => {
                   </>
                 ) : userSubscription?.subscription.id === subscription.id ? (
                   "Current Plan"
+                ) : isDeliveryAvailable === false ? (
+                  "Delivery Not Available"
                 ) : (
-                  "Subscribe"
+                  "Subscribe Now"
                 )}
               </Button>
             </TableCell>
@@ -665,15 +681,22 @@ const Subscription = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 py-16 px-6">
+      <main className="flex-1 container py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold mb-4">Subscription Management</h1>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Manage your subscription, view history, and track usage all in one place.
+          <div className="mb-8">
+            <h1 className="text-3xl font-medium mb-2">Subscription Plans</h1>
+            <p className="text-muted-foreground">
+              Choose a subscription plan that best fits your needs
             </p>
+          </div>
+
+          <div className="mb-8">
+            <PincodeCheck
+              onDeliveryAvailable={handleDeliveryAvailable}
+              onDeliveryUnavailable={handleDeliveryUnavailable}
+            />
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">

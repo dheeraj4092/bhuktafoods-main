@@ -12,17 +12,20 @@ import { cn } from "@/lib/utils";
 const NavigationMenuComponent = () => {
   return (
     <NavigationMenu>
-      <NavigationMenuList>
+      <NavigationMenuList className="gap-6">
         <NavigationMenuItem>
-          <Link to="/" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link 
+            to="/" 
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          >
             Home
           </Link>
         </NavigationMenuItem>
         
         <NavigationMenuItem>
-          <NavigationMenuTrigger>Products</NavigationMenuTrigger>
+          <NavigationMenuTrigger className="text-sm font-medium">Products</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <ul className="grid w-[600px] gap-1 p-4 grid-cols-2">
+            <ul className="grid w-[400px] gap-1 p-4">
               <li>
                 <NavigationMenuLink asChild>
                   <Link
@@ -60,7 +63,10 @@ const NavigationMenuComponent = () => {
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <Link to="/subscription" className="text-sm font-medium transition-colors hover:text-primary">
+          <Link 
+            to="/subscription" 
+            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+          >
             Subscriptions
           </Link>
         </NavigationMenuItem>

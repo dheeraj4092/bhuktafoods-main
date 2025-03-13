@@ -3,15 +3,11 @@ import {
   createOrder,
   getOrders,
   getOrder,
-  updateOrderStatus,
-  handleStripeWebhook
+  updateOrderStatus
 } from '../controllers/orderController.js';
 import { authenticateToken, isAdmin } from '../middleware/auth.js';
 
 const router = express.Router();
-
-// Public routes
-router.post('/webhook', express.raw({ type: 'application/json' }), handleStripeWebhook);
 
 // Protected routes
 router.use(authenticateToken);

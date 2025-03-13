@@ -3,7 +3,7 @@ let currentUser = null;
 let token = localStorage.getItem('adminToken');
 
 // Check authentication on page load
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     if (!token) {
         window.location.href = '/admin/login.html';
         return;
@@ -57,16 +57,30 @@ function showSection(sectionId) {
     });
 }
 
+// Helper function to get auth headers
+function getAuthHeaders() {
+    const token = localStorage.getItem('adminToken');
+    return {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+    };
+}
+
 // Load dashboard data
 async function loadDashboardData() {
     try {
         const response = await fetch('/api/admin/dashboard', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: getAuthHeaders()
         });
         
-        if (!response.ok) throw new Error('Failed to load dashboard data');
+        if (!response.ok) {
+            if (response.status === 401) {
+                // Token expired or invalid, redirect to login
+                window.location.href = '/admin/login.html';
+                return;
+            }
+            throw new Error('Failed to load dashboard data');
+        }
         
         const data = await response.json();
         document.getElementById('total-users').textContent = data.totalUsers;
@@ -82,12 +96,16 @@ async function loadDashboardData() {
 async function loadUsers() {
     try {
         const response = await fetch('/api/admin/users', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
+            headers: getAuthHeaders()
         });
         
-        if (!response.ok) throw new Error('Failed to load users');
+        if (!response.ok) {
+            if (response.status === 401) {
+                window.location.href = '/admin/login.html';
+                return;
+            }
+            throw new Error('Failed to load users');
+        }
         
         const users = await response.json();
         const tbody = document.getElementById('users-table-body');
@@ -744,9 +762,20 @@ function showError(message) {
 }
 
 // Logout
-function logout() {
-    localStorage.removeItem('adminToken');
-    window.location.href = '/admin/login.html';
+async function logout() {
+    try {
+        const supabaseUrl = 'https://topikrqamdglxakppbyg.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcGlrcnFhbWRnbHhha3BwYnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2MDA5ODEsImV4cCI6MjA1NzE3Njk4MX0.rr-cXk_vlf6HKtCkoUzdbuol1tSusvOq2nMyXgYWSCY';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        
+        await supabase.auth.signOut();
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin/login.html';
+    } catch (error) {
+        console.error('Error during logout:', error);
+        // Still redirect to login even if there's an error
+        window.location.href = '/admin/login.html';
+    }
 }
 
 // Edit user function

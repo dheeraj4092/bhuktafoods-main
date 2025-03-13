@@ -27,41 +27,57 @@ const Header = () => {
   return (
     <header
       className={cn(
-        "fixed top-0 inset-x-0 z-50 transition-all duration-300 py-4 px-6 lg:px-10",
-        isScrolled ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-transparent"
+        "fixed top-0 inset-x-0 z-50 transition-all duration-300",
+        isScrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-transparent"
       )}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <Link 
-          to="/" 
-          className="text-xl font-medium tracking-tight flex items-center transform transition-transform hover:scale-[1.02]"
-        >
-          <span>Bhukta Foods</span>
-        </Link>
-
-        <nav className="flex items-center space-x-10">
-          <NavigationMenuComponent />
-        </nav>
-
-        <div className="flex items-center space-x-4">
-          {user ? (
-            <Link to="/profile" className="p-2 rounded-full hover:bg-secondary transition-colors">
-              <User size={20} className="text-muted-foreground hover:text-primary transition-colors" />
-            </Link>
-          ) : (
-            <Link to="/auth" className="p-2 rounded-full hover:bg-secondary transition-colors">
-              <LogIn size={20} className="text-muted-foreground hover:text-primary transition-colors" />
-            </Link>
-          )}
-          
-          <Link to="/cart" className="p-2 rounded-full hover:bg-secondary transition-colors relative">
-            <ShoppingCart size={20} className="text-muted-foreground hover:text-primary transition-colors" />
-            {itemCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-food-accent text-white text-xs font-medium rounded-full w-5 h-5 flex items-center justify-center animate-scale-in">
-                {itemCount}
-              </span>
-            )}
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+          <Link 
+            to="/" 
+            className="text-xl font-semibold tracking-tight flex items-center transform transition-transform hover:scale-[1.02]"
+          >
+            <span className="bg-gradient-to-r from-food-accent to-primary bg-clip-text text-transparent">
+              Bhukta Foods
+            </span>
           </Link>
+
+          <nav className="hidden md:flex items-center space-x-8">
+            <NavigationMenuComponent />
+          </nav>
+
+          <div className="flex items-center space-x-3">
+            {user ? (
+              <Link 
+                to="/profile" 
+                className="p-2 rounded-full hover:bg-secondary/50 transition-colors"
+                title="Profile"
+              >
+                <User size={18} className="text-muted-foreground hover:text-primary transition-colors" />
+              </Link>
+            ) : (
+              <Link 
+                to="/auth" 
+                className="p-2 rounded-full hover:bg-secondary/50 transition-colors"
+                title="Login"
+              >
+                <LogIn size={18} className="text-muted-foreground hover:text-primary transition-colors" />
+              </Link>
+            )}
+            
+            <Link 
+              to="/cart" 
+              className="p-2 rounded-full hover:bg-secondary/50 transition-colors relative"
+              title="Cart"
+            >
+              <ShoppingCart size={18} className="text-muted-foreground hover:text-primary transition-colors" />
+              {itemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-food-accent text-white text-xs font-medium rounded-full w-5 h-5 flex items-center justify-center animate-scale-in">
+                  {itemCount}
+                </span>
+              )}
+            </Link>
+          </div>
         </div>
       </div>
     </header>

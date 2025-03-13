@@ -63,7 +63,12 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        const supabaseUrl = 'https://topikrqamdglxakppbyg.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcGlrcnFhbWRnbHhha3BwYnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2MDA5ODEsImV4cCI6MjA1NzE3Njk4MX0.rr-cXk_vlf6HKtCkoUzdbuol1tSusvOq2nMyXgYWSCY';
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -71,25 +76,28 @@
             const password = document.getElementById('password').value;
             
             try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email,
+                    password
                 });
                 
-                if (!response.ok) throw new Error('Login failed');
-                
-                const data = await response.json();
+                if (error) throw error;
                 
                 // Check if user is admin
-                if (data.user.role !== 'admin') {
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('role')
+                    .eq('id', data.user.id)
+                    .single();
+                
+                if (profileError) throw profileError;
+                
+                if (profile.role !== 'admin') {
                     throw new Error('Admin access required');
                 }
                 
-                // Store token
-                localStorage.setItem('adminToken', data.token);
+                // Store session
+                localStorage.setItem('adminToken', data.session.access_token);
                 
                 // Redirect to dashboard
                 window.location.href = '/admin/index.html';

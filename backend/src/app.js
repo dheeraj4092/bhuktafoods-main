@@ -8,6 +8,7 @@ import userRoutes from './routes/userRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import pincodeRoutes from './routes/pincode.js';
 import adminRoutes from './routes/adminRoutes.js';
+import deliveryRoutes from './routes/deliveryRoutes.js';
 
 dotenv.config();
 
@@ -32,6 +33,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/pincodes', pincodeRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/delivery', deliveryRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

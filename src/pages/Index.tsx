@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -29,13 +28,35 @@ const Index = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <HeroSection />
-      <CategoriesSection />
-      <FeaturedProductsSection />
-      <HowItWorksSection />
-      <SubscriptionCTA />
-      <TestimonialsSection />
-      <InstagramFeedSection />
+      <main className="flex-grow">
+        <div className="space-y-24 sm:space-y-32">
+          <HeroSection />
+          
+          <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <CategoriesSection />
+          </section>
+          
+          <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <FeaturedProductsSection />
+          </section>
+          
+          <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <HowItWorksSection />
+          </section>
+          
+          <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <SubscriptionCTA />
+          </section>
+          
+          <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <TestimonialsSection />
+          </section>
+          
+          <section className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <InstagramFeedSection />
+          </section>
+        </div>
+      </main>
       
       <Footer />
       <FloatingCart />

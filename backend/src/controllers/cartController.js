@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase.js';
+import { supabase, supabaseAdmin } from '../config/supabase.js';
 
 // Get user's cart
 export const getCart = async (req, res) => {
@@ -46,32 +46,49 @@ export const addToCart = async (req, res) => {
     const userId = req.user.id;
     const { product_id, quantity = 1 } = req.body;
 
-    // Check if product exists and has enough stock
-    const { data: product, error: productError } = await supabase
+    console.log('Adding to cart:', { userId, product_id, quantity });
+
+    // First, get the product by its ID
+    const { data: product, error: productError } = await supabaseAdmin
       .from('products')
-      .select('stock_quantity')
+      .select('id, name, stock_quantity')
       .eq('id', product_id)
       .single();
 
-    if (productError) throw productError;
-
-    if (!product) {
-      return res.status(404).json({ error: 'Product not found' });
+    if (productError) {
+      console.error('Product lookup error:', productError);
+      return res.status(404).json({ 
+        error: 'Product not found',
+        details: productError.message 
+      });
     }
 
+    if (!product) {
+      return res.status(404).json({ 
+        error: 'Product not found',
+        details: `No product found with ID: ${product_id}`
+      });
+    }
+
+    console.log('Found product:', product);
+
     if (product.stock_quantity < quantity) {
-      return res.status(400).json({ error: 'Not enough stock available' });
+      return res.status(400).json({ 
+        error: 'Not enough stock available',
+        details: `Only ${product.stock_quantity} units available for ${product.name}`
+      });
     }
 
     // Check if item already exists in cart
-    const { data: existingItem, error: cartError } = await supabase
+    const { data: existingItem, error: cartError } = await supabaseAdmin
       .from('shopping_cart')
       .select('id, quantity')
       .eq('user_id', userId)
-      .eq('product_id', product_id)
+      .eq('product_id', product.id)
       .single();
 
     if (cartError && cartError.code !== 'PGRST116') { // PGRST116 is "no rows returned"
+      console.error('Cart check error:', cartError);
       throw cartError;
     }
 
@@ -80,40 +97,56 @@ export const addToCart = async (req, res) => {
       // Update quantity if item exists
       const newQuantity = existingItem.quantity + quantity;
       if (newQuantity > product.stock_quantity) {
-        return res.status(400).json({ error: 'Not enough stock available' });
+        return res.status(400).json({ 
+          error: 'Not enough stock available',
+          details: `Only ${product.stock_quantity} units available for ${product.name}`
+        });
       }
 
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('shopping_cart')
         .update({ quantity: newQuantity })
         .eq('id', existingItem.id)
+        .eq('user_id', userId)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Update cart error:', error);
+        throw error;
+      }
       result = data;
     } else {
       // Add new item if it doesn't exist
-      const { data, error } = await supabase
+      const cartItem = {
+        user_id: userId,
+        product_id: product.id,
+        quantity
+      };
+      
+      console.log('Inserting cart item:', cartItem);
+      
+      const { data, error } = await supabaseAdmin
         .from('shopping_cart')
-        .insert([
-          {
-            user_id: userId,
-            product_id,
-            quantity
-          }
-        ])
+        .insert([cartItem])
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert cart error:', error);
+        throw error;
+      }
       result = data;
     }
 
+    console.log('Successfully added to cart:', result);
     res.status(201).json(result);
   } catch (error) {
     console.error('Add to cart error:', error);
-    res.status(500).json({ error: 'Error adding item to cart' });
+    res.status(500).json({ 
+      error: 'Error adding item to cart',
+      details: error.message
+    });
   }
 };
 

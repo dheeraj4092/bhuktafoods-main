@@ -9,10 +9,11 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 const Checkout = () => {
-  const { items, totalPrice } = useCart();
-  const { user } = useAuth();
+  const { items, totalPrice, clearCart } = useCart();
+  const { user, session } = useAuth();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [formData, setFormData] = useState({
@@ -21,9 +22,6 @@ const Checkout = () => {
     address: "",
     city: "",
     zipCode: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvv: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,18 +29,14 @@ const Checkout = () => {
     setIsProcessing(true);
 
     try {
-      const response = await fetch("http://localhost:5001/api/orders", {
+      // Place the order directly with the current cart items
+      const orderResponse = await fetch("http://localhost:5001/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${user?.token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
         body: JSON.stringify({
-          items: items.map(item => ({
-            id: item.id,
-            quantity: item.quantity,
-            price: item.price
-          })),
           shipping_address: {
             name: formData.name,
             email: formData.email,
@@ -53,18 +47,25 @@ const Checkout = () => {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create order");
+      if (!orderResponse.ok) {
+        const errorData = await orderResponse.json();
+        console.error("Order creation error:", errorData);
+        throw new Error(errorData.details || errorData.error || "Failed to create order");
       }
 
-      const { clientSecret } = await response.json();
+      const data = await orderResponse.json();
       
-      // Here you would integrate with Stripe Elements to handle the payment
-      // For now, we'll just navigate to a success page
+      // Clear the frontend cart after successful order creation
+      clearCart();
+      
+      // Show success message
+      toast.success("Order placed successfully!");
+      
+      // Navigate to order success page
       navigate("/order-success");
     } catch (error) {
       console.error("Checkout error:", error);
-      // Handle error (show error message to user)
+      toast.error(error instanceof Error ? error.message : "Failed to place order");
     } finally {
       setIsProcessing(false);
     }

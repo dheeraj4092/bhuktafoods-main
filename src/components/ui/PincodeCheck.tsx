@@ -2,82 +2,124 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { useToast } from "@/components/ui/use-toast";
 
 interface PincodeCheckProps {
-  onDeliveryAvailable?: () => void;
-  onDeliveryUnavailable?: () => void;
+  onDeliveryAvailable: () => void;
+  onDeliveryUnavailable: () => void;
 }
 
 const PincodeCheck = ({ onDeliveryAvailable, onDeliveryUnavailable }: PincodeCheckProps) => {
   const [pincode, setPincode] = useState("");
-  const [isChecking, setIsChecking] = useState(false);
-  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [isEligible, setIsEligible] = useState<boolean | null>(null);
+  const { toast } = useToast();
 
   const checkPincode = async () => {
     if (!pincode || pincode.length !== 6) {
-      toast.error("Please enter a valid 6-digit pincode");
+      toast({
+        title: "Invalid Pincode",
+        description: "Please enter a valid 6-digit pincode",
+        variant: "destructive",
+      });
       return;
     }
 
-    setIsChecking(true);
+    setLoading(true);
     try {
-      const response = await fetch(`/api/check-pincode?pincode=${pincode}`);
+      const response = await fetch(`http://localhost:5001/api/delivery/check-pincode?pincode=${pincode}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        throw new Error(errorData?.message || `HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
       
-      setIsAvailable(data.available);
-      if (data.available) {
-        toast.success("Delivery available in your area!");
-        onDeliveryAvailable?.();
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to check pincode');
+      }
+
+      setIsEligible(data.isEligible);
+      
+      if (data.isEligible) {
+        onDeliveryAvailable();
+        toast({
+          title: "Delivery Available",
+          description: "Great! We deliver to your area.",
+        });
       } else {
-        toast.error("Sorry, delivery is not available in your area");
-        onDeliveryUnavailable?.();
+        onDeliveryUnavailable();
+        toast({
+          title: "Delivery Not Available",
+          description: "Sorry, we don't deliver to your area yet.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
-      toast.error("Failed to check pincode. Please try again.");
+      console.error('Pincode check error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to check delivery availability",
+        variant: "destructive",
+      });
     } finally {
-      setIsChecking(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-4 bg-white rounded-lg shadow-sm border">
-      <h3 className="text-lg font-medium mb-4">Check Delivery Availability</h3>
-      <div className="flex gap-2">
-        <Input
-          type="text"
-          placeholder="Enter your pincode"
-          value={pincode}
-          onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          className="flex-1"
-        />
-        <Button 
-          onClick={checkPincode} 
-          disabled={isChecking || pincode.length !== 6}
-        >
-          {isChecking ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            "Check"
-          )}
-        </Button>
-      </div>
-      
-      {isAvailable !== null && (
-        <div className="mt-4 flex items-center gap-2">
-          {isAvailable ? (
-            <>
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <span className="text-green-500">Delivery available in your area</span>
-            </>
-          ) : (
-            <>
-              <XCircle className="h-5 w-5 text-red-500" />
-              <span className="text-red-500">Delivery not available in your area</span>
-            </>
-          )}
+    <div className="bg-white p-6 rounded-lg shadow-md">
+      <div className="space-y-4">
+        <div>
+          <h3 className="text-lg font-medium mb-2">Check Delivery Availability</h3>
+          <p className="text-sm text-muted-foreground">
+            Enter your pincode to check if we deliver to your area
+          </p>
         </div>
-      )}
+
+        <div className="flex gap-4">
+          <Input
+            type="text"
+            placeholder="Enter 6-digit pincode"
+            value={pincode}
+            onChange={(e) => setPincode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            maxLength={6}
+            className="max-w-[200px]"
+          />
+          <Button
+            onClick={checkPincode}
+            disabled={loading || pincode.length !== 6}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Checking...
+              </>
+            ) : (
+              "Check"
+            )}
+          </Button>
+        </div>
+
+        {isEligible !== null && (
+          <div className={`flex items-center gap-2 ${
+            isEligible ? "text-green-600" : "text-red-600"
+          }`}>
+            {isEligible ? (
+              <>
+                <CheckCircle2 className="w-5 h-5" />
+                <span>Delivery available in your area</span>
+              </>
+            ) : (
+              <>
+                <XCircle className="w-5 h-5" />
+                <span>Delivery not available in your area</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
