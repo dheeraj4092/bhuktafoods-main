@@ -1,4 +1,3 @@
-
 import CategoryCard from "@/components/ui/CategoryCard";
 
 const CategoriesSection = () => {
@@ -6,13 +5,13 @@ const CategoriesSection = () => {
     <section className="py-16 px-6 lg:px-10 bg-food-light">
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-12">
-          <h2 className="text-3xl lg:text-4xl font-medium mb-4 animate-fade-in">Our Specialties</h2>
+          <h2 className="text-4xl font-medium mb-4 animate-fade-in">Our Specialties</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto animate-fade-in animate-delay-200">
             Choose from our traditional homemade snacks that ship nationwide, or freshly prepared local delights for same-day delivery.
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade-in animate-delay-300">
+        <div className="grid grid-cols-2 gap-8 animate-fade-in animate-delay-300">
           <CategoryCard 
             title="Traditional Snacks"
             description="Authentic homemade snacks prepared with age-old family recipes, available for nationwide and international shipping."

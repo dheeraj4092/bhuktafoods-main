@@ -22,7 +22,7 @@ const NavigationMenuComponent = () => {
         <NavigationMenuItem>
           <NavigationMenuTrigger>Products</NavigationMenuTrigger>
           <NavigationMenuContent>
-            <ul className="grid w-[400px] gap-1 p-4 md:w-[500px] md:grid-cols-2 lg:w-[600px]">
+            <ul className="grid w-[600px] gap-1 p-4 grid-cols-2">
               <li>
                 <NavigationMenuLink asChild>
                   <Link

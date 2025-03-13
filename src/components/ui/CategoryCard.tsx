@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -57,7 +56,7 @@ const CategoryCard = ({
       {/* Content */}
       <div className="relative mt-auto p-8 z-10 text-white">
         <h3 className={cn(
-          "text-2xl md:text-3xl font-medium mb-2",
+          "text-3xl font-medium mb-2",
           `text-${colorAccent}`
         )}>
           {title}
