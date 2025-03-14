@@ -28,7 +28,7 @@ export const createOrder = async (req, res) => {
 
     if (cartError) {
       console.error('Cart fetch error:', cartError);
-      throw new Error('Failed to fetch cart items');
+      return res.status(500).json({ error: 'Failed to fetch cart items' });
     }
 
     if (!cartItems || cartItems.length === 0) {
@@ -52,15 +52,22 @@ export const createOrder = async (req, res) => {
       total += item.products.price * item.quantity;
     }
 
-    // Start a transaction by using a single request
+    // Validate total amount matches
+    if (Math.abs(total - req.body.total_amount) > 0.01) {
+      return res.status(400).json({
+        error: 'Total amount mismatch'
+      });
+    }
+
+    // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert([
         {
           user_id: userId,
           total_amount: total,
-          shipping_address,
-          status: 'processing' // Set initial status as processing
+          shipping_address: req.body.shipping_address,
+          status: 'processing'
         }
       ])
       .select()
@@ -68,7 +75,7 @@ export const createOrder = async (req, res) => {
 
     if (orderError) {
       console.error('Order creation error:', orderError);
-      throw new Error('Failed to create order');
+      return res.status(500).json({ error: 'Failed to create order' });
     }
 
     // Create order items
@@ -85,7 +92,7 @@ export const createOrder = async (req, res) => {
 
     if (itemsError) {
       console.error('Order items creation error:', itemsError);
-      throw new Error('Failed to create order items');
+      return res.status(500).json({ error: 'Failed to create order items' });
     }
 
     // Update product stock
@@ -99,7 +106,7 @@ export const createOrder = async (req, res) => {
 
       if (stockError) {
         console.error('Stock update error:', stockError);
-        throw new Error('Failed to update product stock');
+        return res.status(500).json({ error: 'Failed to update product stock' });
       }
     }
 
@@ -111,7 +118,7 @@ export const createOrder = async (req, res) => {
 
     if (clearError) {
       console.error('Cart clear error:', clearError);
-      throw new Error('Failed to clear cart');
+      return res.status(500).json({ error: 'Failed to clear cart' });
     }
 
     res.status(201).json({
@@ -244,4 +251,4 @@ export const updateOrderStatus = async (req, res) => {
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
-}; 
+};

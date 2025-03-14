@@ -31,7 +31,7 @@ app.use('/api/subscriptions', subscriptionRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/pincodes', pincodeRoutes);
+app.use('/api/pincodes', pincode);
 app.use('/api/admin', adminRoutes);
 app.use('/api/delivery', deliveryRoutes);
 

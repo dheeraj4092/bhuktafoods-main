@@ -27,50 +27,62 @@ const Checkout = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
-
+  
+    // Validate cart is not empty
+    if (items.length === 0) {
+      toast.error("Cart is empty. Please add items to your cart before placing an order.");
+      setIsProcessing(false);
+      return;
+    }
+  
     try {
-      // Place the order directly with the current cart items
+      // Prepare the order payload
+      const orderPayload = {
+        total_amount: totalPrice,
+        shipping_address: {
+          name: formData.name,
+          email: formData.email,
+          address: formData.address,
+          city: formData.city,
+          zipCode: formData.zipCode,
+        }
+      };
+  
+      console.log("Order Payload:", orderPayload); // Debugging: Log the payload
+  
+      // Send the order to the backend
       const orderResponse = await fetch("http://localhost:5001/api/orders", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token}`,
         },
-        body: JSON.stringify({
-          shipping_address: {
-            name: formData.name,
-            email: formData.email,
-            address: formData.address,
-            city: formData.city,
-            zipCode: formData.zipCode
-          }
-        }),
+        body: JSON.stringify(orderPayload),
       });
-
+  
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
-        console.error("Order creation error:", errorData);
-        throw new Error(errorData.details || errorData.error || "Failed to create order");
+        console.error("Order creation error:", errorData); // Debugging: Log the error
+        throw new Error(errorData.error || "Failed to create order.");
       }
-
+  
       const data = await orderResponse.json();
-      
-      // Clear the frontend cart after successful order creation
+  
+      // Clear the cart after successful order creation
       clearCart();
-      
+  
       // Show success message
       toast.success("Order placed successfully!");
-      
-      // Navigate to order success page
+  
+      // Navigate to the order success page
       navigate("/order-success");
     } catch (error) {
       console.error("Checkout error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to place order");
+      toast.error(error instanceof Error ? error.message : "Failed to place order.");
     } finally {
       setIsProcessing(false);
     }
   };
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -211,4 +223,4 @@ const Checkout = () => {
   );
 };
 
-export default Checkout; 
+export default Checkout;

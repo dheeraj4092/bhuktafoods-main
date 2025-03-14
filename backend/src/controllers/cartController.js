@@ -36,7 +36,7 @@ export const getCart = async (req, res) => {
     res.json(cart);
   } catch (error) {
     console.error('Get cart error:', error);
-    res.status(500).json({ error: 'Error fetching cart' });
+    res.status(500).json({ error: 'Error fetching cart', details: error.message });
   }
 };
 
@@ -45,6 +45,11 @@ export const addToCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const { product_id, quantity = 1 } = req.body;
+
+    // Validate input
+    if (!product_id || typeof quantity !== 'number' || quantity <= 0) {
+      return res.status(400).json({ error: 'Invalid input: product_id and quantity are required' });
+    }
 
     console.log('Adding to cart:', { userId, product_id, quantity });
 
@@ -55,18 +60,11 @@ export const addToCart = async (req, res) => {
       .eq('id', product_id)
       .single();
 
-    if (productError) {
+    if (productError || !product) {
       console.error('Product lookup error:', productError);
       return res.status(404).json({ 
         error: 'Product not found',
-        details: productError.message 
-      });
-    }
-
-    if (!product) {
-      return res.status(404).json({ 
-        error: 'Product not found',
-        details: `No product found with ID: ${product_id}`
+        details: productError?.message || `No product found with ID: ${product_id}`
       });
     }
 
@@ -140,7 +138,36 @@ export const addToCart = async (req, res) => {
     }
 
     console.log('Successfully added to cart:', result);
-    res.status(201).json(result);
+
+    // Return the updated cart
+    const { data: updatedCart, error: cartFetchError } = await supabase
+      .from('shopping_cart')
+      .select(`
+        id,
+        quantity,
+        products (
+          id,
+          name,
+          description,
+          price,
+          image_url,
+          stock_quantity
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (cartFetchError) throw cartFetchError;
+
+    const cart = {
+      items: updatedCart.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        product: item.products
+      })),
+      total: updatedCart.reduce((sum, item) => sum + (item.products.price * item.quantity), 0)
+    };
+
+    res.status(201).json(cart);
   } catch (error) {
     console.error('Add to cart error:', error);
     res.status(500).json({ 
@@ -157,6 +184,11 @@ export const updateCartItem = async (req, res) => {
     const { id } = req.params;
     const { quantity } = req.body;
 
+    // Validate input
+    if (!quantity || typeof quantity !== 'number' || quantity <= 0) {
+      return res.status(400).json({ error: 'Invalid input: quantity is required and must be a positive number' });
+    }
+
     // Check if item exists in cart
     const { data: cartItem, error: cartError } = await supabase
       .from('shopping_cart')
@@ -165,10 +197,11 @@ export const updateCartItem = async (req, res) => {
       .eq('user_id', userId)
       .single();
 
-    if (cartError) throw cartError;
-
-    if (!cartItem) {
-      return res.status(404).json({ error: 'Cart item not found' });
+    if (cartError || !cartItem) {
+      return res.status(404).json({ 
+        error: 'Cart item not found',
+        details: cartError?.message || `No cart item found with ID: ${id}`
+      });
     }
 
     // Check if product has enough stock
@@ -178,10 +211,18 @@ export const updateCartItem = async (req, res) => {
       .eq('id', cartItem.product_id)
       .single();
 
-    if (productError) throw productError;
+    if (productError || !product) {
+      return res.status(404).json({ 
+        error: 'Product not found',
+        details: productError?.message || `No product found for cart item ID: ${id}`
+      });
+    }
 
     if (quantity > product.stock_quantity) {
-      return res.status(400).json({ error: 'Not enough stock available' });
+      return res.status(400).json({ 
+        error: 'Not enough stock available',
+        details: `Only ${product.stock_quantity} units available`
+      });
     }
 
     // Update quantity
@@ -194,10 +235,41 @@ export const updateCartItem = async (req, res) => {
 
     if (error) throw error;
 
-    res.json(data);
+    // Return the updated cart
+    const { data: updatedCart, error: cartFetchError } = await supabase
+      .from('shopping_cart')
+      .select(`
+        id,
+        quantity,
+        products (
+          id,
+          name,
+          description,
+          price,
+          image_url,
+          stock_quantity
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (cartFetchError) throw cartFetchError;
+
+    const cart = {
+      items: updatedCart.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        product: item.products
+      })),
+      total: updatedCart.reduce((sum, item) => sum + (item.products.price * item.quantity), 0)
+    };
+
+    res.json(cart);
   } catch (error) {
     console.error('Update cart item error:', error);
-    res.status(500).json({ error: 'Error updating cart item' });
+    res.status(500).json({ 
+      error: 'Error updating cart item',
+      details: error.message
+    });
   }
 };
 
@@ -215,10 +287,41 @@ export const removeFromCart = async (req, res) => {
 
     if (error) throw error;
 
-    res.json({ message: 'Item removed from cart' });
+    // Return the updated cart
+    const { data: updatedCart, error: cartFetchError } = await supabase
+      .from('shopping_cart')
+      .select(`
+        id,
+        quantity,
+        products (
+          id,
+          name,
+          description,
+          price,
+          image_url,
+          stock_quantity
+        )
+      `)
+      .eq('user_id', userId);
+
+    if (cartFetchError) throw cartFetchError;
+
+    const cart = {
+      items: updatedCart.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        product: item.products
+      })),
+      total: updatedCart.reduce((sum, item) => sum + (item.products.price * item.quantity), 0)
+    };
+
+    res.json(cart);
   } catch (error) {
     console.error('Remove from cart error:', error);
-    res.status(500).json({ error: 'Error removing item from cart' });
+    res.status(500).json({ 
+      error: 'Error removing item from cart',
+      details: error.message
+    });
   }
 };
 
@@ -237,6 +340,9 @@ export const clearCart = async (req, res) => {
     res.json({ message: 'Cart cleared successfully' });
   } catch (error) {
     console.error('Clear cart error:', error);
-    res.status(500).json({ error: 'Error clearing cart' });
+    res.status(500).json({ 
+      error: 'Error clearing cart',
+      details: error.message
+    });
   }
-}; 
+};

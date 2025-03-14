@@ -12,15 +12,31 @@ router.get('/check-pincode', checkPincode);
 router.post('/eligible-pincodes', authenticateToken, async (req, res) => {
   try {
     const { pincode, area_name } = req.body;
-    
+
+    // Validate input
+    if (!pincode || !area_name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pincode and area name are required'
+      });
+    }
+
     // Check if user is admin
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', req.user.id)
       .single();
 
-    if (!profile || profile.role !== 'admin') {
+    if (profileError || !profile) {
+      console.error('Error fetching user profile:', profileError);
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to fetch user profile'
+      });
+    }
+
+    if (profile.role !== 'admin') {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized: Admin access required'
@@ -56,4 +72,4 @@ router.post('/eligible-pincodes', authenticateToken, async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

@@ -1,5 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
 import { CartItem } from "@/lib/utils";
+import { useAuth } from "./AuthContext";
 
 interface CartContextType {
   items: CartItem[];
@@ -102,6 +103,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   );
 
+  const { session } = useAuth();
+
   // Calculate totals
   const totalPrice = state.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -118,20 +121,98 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem("cart", JSON.stringify(state.items));
   }, [state.items]);
 
+  const syncWithBackend = async (action: CartAction) => {
+    if (!session?.access_token) {
+      console.error("No access token found. User is not authenticated.");
+      return;
+    }
+
+    try {
+      let response;
+      switch (action.type) {
+        case "ADD_ITEM": {
+          response = await fetch("http://localhost:5001/api/cart", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              product_id: action.payload.id,
+              quantity: action.payload.quantity,
+            }),
+          });
+          break;
+        }
+        case "REMOVE_ITEM": {
+          response = await fetch(`http://localhost:5001/api/cart/${action.payload}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+          break;
+        }
+        case "UPDATE_QUANTITY": {
+          response = await fetch(`http://localhost:5001/api/cart/${action.payload.id}`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({
+              quantity: action.payload.quantity,
+            }),
+          });
+          break;
+        }
+        case "CLEAR_CART": {
+          response = await fetch("http://localhost:5001/api/cart", {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+          break;
+        }
+        default:
+          throw new Error("Invalid cart action type.");
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Failed to sync cart with backend:", errorData);
+        throw new Error(errorData.error || "Failed to sync cart with backend.");
+      }
+
+      console.log("Cart synced successfully with backend.");
+    } catch (error) {
+      console.error("Error syncing cart with backend:", error);
+    }
+  };
+
   const addItem = (item: CartItem) => {
-    dispatch({ type: "ADD_ITEM", payload: item });
+    const action = { type: "ADD_ITEM" as const, payload: item };
+    dispatch(action);
+    syncWithBackend(action);
   };
 
   const removeItem = (id: string) => {
-    dispatch({ type: "REMOVE_ITEM", payload: id });
+    const action = { type: "REMOVE_ITEM" as const, payload: id };
+    dispatch(action);
+    syncWithBackend(action);
   };
 
   const updateQuantity = (id: string, quantity: number) => {
-    dispatch({ type: "UPDATE_QUANTITY", payload: { id, quantity } });
+    const action = { type: "UPDATE_QUANTITY" as const, payload: { id, quantity } };
+    dispatch(action);
+    syncWithBackend(action);
   };
 
   const clearCart = () => {
-    dispatch({ type: "CLEAR_CART" });
+    const action = { type: "CLEAR_CART" as const };
+    dispatch(action);
+    syncWithBackend(action);
   };
 
   return (

@@ -26,6 +26,13 @@ const CategoriesSection = () => {
             link="/products?category=fresh"
             colorAccent="food-fresh"
           />
+          <CategoryCard 
+            title="Fast Foods"
+            description="Hot and crispy fast foods delivered locally on the same day."
+            image="https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop"
+            link="/products?category=fast"
+            colorAccent="food-fast"
+          />
         </div>
       </div>
     </section>

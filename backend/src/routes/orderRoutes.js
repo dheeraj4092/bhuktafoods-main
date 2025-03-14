@@ -24,4 +24,4 @@ router.get('/:id', getOrder);
 // Admin routes
 router.put('/:id/status', isAdmin, updateOrderStatus);
 
-export default router; 
+export default router;

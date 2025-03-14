@@ -16,7 +16,7 @@ const PincodeCheck = ({ onDeliveryAvailable, onDeliveryUnavailable }: PincodeChe
   const { toast } = useToast();
 
   const checkPincode = async () => {
-    if (!pincode || pincode.length !== 6) {
+    if (!pincode || pincode.length !== 6 || !/^\d{6}$/.test(pincode)) {
       toast({
         title: "Invalid Pincode",
         description: "Please enter a valid 6-digit pincode",
@@ -35,6 +35,7 @@ const PincodeCheck = ({ onDeliveryAvailable, onDeliveryUnavailable }: PincodeChe
       }
       
       const data = await response.json();
+      console.log('API Response:', data); // Log the response for debugging
       
       if (!data.success) {
         throw new Error(data.message || 'Failed to check pincode');
@@ -60,7 +61,7 @@ const PincodeCheck = ({ onDeliveryAvailable, onDeliveryUnavailable }: PincodeChe
       console.error('Pincode check error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to check delivery availability",
+        description: error instanceof Error ? error.message : "Failed to check delivery availability. Please try again later.",
         variant: "destructive",
       });
     } finally {
@@ -124,4 +125,4 @@ const PincodeCheck = ({ onDeliveryAvailable, onDeliveryUnavailable }: PincodeChe
   );
 };
 
-export default PincodeCheck; 
+export default PincodeCheck;

@@ -47,7 +47,7 @@ export const PRODUCTS: Product[] = [
     name: "Homemade Chakli",
     description: "Crispy spiral-shaped snack made from rice flour, gram flour, and spices.",
     price: 299,
-    image: "https://images.unsplash.com/photo-1589496933738-f5c27bc146e7?q=80&w=3087&auto=format&fit=crop",
+    image: "",
     category: "snacks",
     isAvailable: true,
     shipping: {
@@ -61,7 +61,7 @@ export const PRODUCTS: Product[] = [
     name: "Besan Ladoo",
     description: "Sweet round balls made from gram flour, ghee, sugar, and cardamom.",
     price: 399,
-    image: "https://images.unsplash.com/photo-1590331029963-b7e1a29b8517?q=80&w=3087&auto=format&fit=crop",
+    image: "",
     category: "snacks",
     isAvailable: true,
     shipping: {
@@ -75,7 +75,7 @@ export const PRODUCTS: Product[] = [
     name: "Butter Murukku",
     description: "Crunchy twisted snack made with rice flour, butter, and authentic spices.",
     price: 349,
-    image: "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?q=80&w=3069&auto=format&fit=crop",
+    image: "",
     category: "snacks",
     isAvailable: true,
     shipping: {
@@ -89,7 +89,7 @@ export const PRODUCTS: Product[] = [
     name: "Masala Mathri",
     description: "Flaky and crispy savory crackers flavored with carom seeds and spices.",
     price: 249,
-    image: "https://images.unsplash.com/photo-1558138838-76294be30005?q=80&w=3087&auto=format&fit=crop",
+    image: "",
     category: "snacks",
     isAvailable: false,
     shipping: {
@@ -103,7 +103,7 @@ export const PRODUCTS: Product[] = [
     name: "Rainbow Fruit Bowl",
     description: "Freshly cut seasonal fruits arranged in a colorful, Instagram-worthy bowl.",
     price: 179,
-    image: "https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?q=80&w=3024&auto=format&fit=crop",
+    image: "",
     category: "fresh",
     isAvailable: true,
     isPreOrder: true,

@@ -35,11 +35,6 @@ const HeroSection = () => {
                   Explore Traditional Snacks <ArrowRight size={16} className="ml-2" />
                 </Link>
               </Button>
-              <Button asChild size="lg" variant="outline" className="px-6 font-medium rounded-full">
-                <Link to="/products?category=fresh">
-                  Browse Fresh Foods <ArrowRight size={16} className="ml-2" />
-                </Link>
-              </Button>
             </div>
           </div>
           <div className={`w-1/2 relative ${isLoaded ? 'animate-fade-in animate-delay-300' : 'opacity-0'}`}>
