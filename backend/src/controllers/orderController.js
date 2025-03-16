@@ -1,135 +1,87 @@
 import { supabase } from '../config/supabase.js';
+import { sendOrderConfirmationEmail, sendAdminNotificationEmail } from '../services/emailService.js';
 
 // Create order
 export const createOrder = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { shipping_address } = req.body;
+    const { shipping_address, items, total_amount } = req.body;
 
-    // Validate shipping address
-    if (!shipping_address || !shipping_address.name || !shipping_address.email || 
-        !shipping_address.address || !shipping_address.city || !shipping_address.zipCode) {
-      return res.status(400).json({ error: 'Shipping address is incomplete' });
+    // Basic validation
+    if (!shipping_address || !items || !total_amount) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Get user's cart
-    const { data: cartItems, error: cartError } = await supabase
-      .from('shopping_cart')
-      .select(`
-        quantity,
-        products (
-          id,
-          name,
-          price,
-          stock_quantity
-        )
-      `)
-      .eq('user_id', userId);
-
-    if (cartError) {
-      console.error('Cart fetch error:', cartError);
-      return res.status(500).json({ error: 'Failed to fetch cart items' });
+    // Validate items array
+    if (!Array.isArray(items)) {
+      return res.status(400).json({ error: 'Items must be an array' });
     }
 
-    if (!cartItems || cartItems.length === 0) {
-      return res.status(400).json({ error: 'Cart is empty' });
-    }
-
-    // Calculate total and check stock
-    let total = 0;
-    for (const item of cartItems) {
-      if (!item.products) {
-        return res.status(400).json({
-          error: `Product not found in cart item`
+    // Validate each item has required fields
+    for (const item of items) {
+      if (!item.product_id || !item.quantity || !item.quantity_unit || !item.unit_price) {
+        return res.status(400).json({ 
+          error: 'Each item must have product_id, quantity, quantity_unit, and unit_price' 
         });
       }
-      
-      if (item.quantity > item.products.stock_quantity) {
-        return res.status(400).json({
-          error: `Not enough stock available for ${item.products.name}`
+
+      // Validate quantity_unit
+      if (!['250g', '500g', '1Kg'].includes(item.quantity_unit)) {
+        return res.status(400).json({ 
+          error: 'Invalid quantity_unit. Must be one of: 250g, 500g, 1Kg' 
         });
       }
-      total += item.products.price * item.quantity;
     }
 
-    // Validate total amount matches
-    if (Math.abs(total - req.body.total_amount) > 0.01) {
-      return res.status(400).json({
-        error: 'Total amount mismatch'
+    // Call the database function to create order
+    const { data, error } = await supabase
+      .rpc('create_order', {
+        p_user_id: userId,
+        p_shipping_address: shipping_address,
+        p_items: items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          quantity_unit: item.quantity_unit,
+          unit_price: item.unit_price
+        })),
+        p_total_amount: total_amount
       });
-    }
 
-    // Create order
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert([
-        {
-          user_id: userId,
-          total_amount: total,
-          shipping_address: req.body.shipping_address,
-          status: 'processing'
-        }
-      ])
-      .select()
-      .single();
-
-    if (orderError) {
-      console.error('Order creation error:', orderError);
+    if (error) {
+      console.error('Order creation error:', error);
       return res.status(500).json({ error: 'Failed to create order' });
     }
 
-    // Create order items
-    const orderItems = cartItems.map(item => ({
-      order_id: order.id,
-      product_id: item.products.id,
-      quantity: item.quantity,
-      price_at_time: item.products.price
-    }));
+    // Get order details using the new function
+    const { data: orderDetails, error: detailsError } = await supabase
+      .rpc('get_order_details', { p_order_id: data.order_id });
 
-    const { error: itemsError } = await supabase
-      .from('order_items')
-      .insert(orderItems);
-
-    if (itemsError) {
-      console.error('Order items creation error:', itemsError);
-      return res.status(500).json({ error: 'Failed to create order items' });
+    if (detailsError) {
+      console.error('Error fetching order details:', detailsError);
+      return res.status(500).json({ error: 'Failed to fetch order details' });
     }
 
-    // Update product stock
-    for (const item of cartItems) {
-      const { error: stockError } = await supabase
-        .from('products')
-        .update({
-          stock_quantity: item.products.stock_quantity - item.quantity
-        })
-        .eq('id', item.products.id);
-
-      if (stockError) {
-        console.error('Stock update error:', stockError);
-        return res.status(500).json({ error: 'Failed to update product stock' });
-      }
-    }
-
-    // Clear user's cart
-    const { error: clearError } = await supabase
-      .from('shopping_cart')
-      .delete()
-      .eq('user_id', userId);
-
-    if (clearError) {
-      console.error('Cart clear error:', clearError);
-      return res.status(500).json({ error: 'Failed to clear cart' });
+    // Send email notifications
+    try {
+      // Send confirmation email to customer
+      await sendOrderConfirmationEmail(orderDetails, shipping_address.email);
+      
+      // Send notification email to admin
+      await sendAdminNotificationEmail(orderDetails);
+    } catch (emailError) {
+      console.error('Error sending email notifications:', emailError);
+      // Don't fail the order creation if email sending fails
     }
 
     res.status(201).json({
       success: true,
-      order,
+      order: orderDetails,
       message: 'Order placed successfully'
     });
   } catch (error) {
-    console.error('Create order error:', error);
+    console.error('Order creation error:', error);
     res.status(500).json({ 
-      error: error.message || 'Error creating order',
+      error: 'Failed to create order',
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
@@ -147,6 +99,7 @@ export const getOrders = async (req, res) => {
         order_items (
           id,
           quantity,
+          quantity_unit,
           price_at_time,
           products (
             id,
@@ -180,23 +133,7 @@ export const getOrder = async (req, res) => {
     const { id } = req.params;
 
     const { data: order, error } = await supabase
-      .from('orders')
-      .select(`
-        *,
-        order_items (
-          id,
-          quantity,
-          price_at_time,
-          products (
-            id,
-            name,
-            image_url
-          )
-        )
-      `)
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+      .rpc('get_order_details', { p_order_id: id });
 
     if (error) {
       console.error('Get order error:', error);
@@ -205,6 +142,11 @@ export const getOrder = async (req, res) => {
 
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
+    }
+
+    // Verify order belongs to user
+    if (order.user_id !== userId) {
+      return res.status(403).json({ error: 'Not authorized to view this order' });
     }
 
     res.json(order);
@@ -229,7 +171,10 @@ export const updateOrderStatus = async (req, res) => {
 
     const { data: order, error } = await supabase
       .from('orders')
-      .update({ status })
+      .update({ 
+        status,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .select()
       .single();
@@ -243,7 +188,16 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
 
-    res.json(order);
+    // Get updated order details
+    const { data: orderDetails, error: detailsError } = await supabase
+      .rpc('get_order_details', { p_order_id: id });
+
+    if (detailsError) {
+      console.error('Error fetching updated order details:', detailsError);
+      return res.status(500).json({ error: 'Failed to fetch updated order details' });
+    }
+
+    res.json(orderDetails);
   } catch (error) {
     console.error('Update order status error:', error);
     res.status(500).json({ 

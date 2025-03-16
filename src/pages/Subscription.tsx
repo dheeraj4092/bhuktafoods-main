@@ -349,46 +349,43 @@ const Subscription = () => {
   };
 
   const handlePause = async () => {
+    if (!session?.access_token) {
+      toast.error("Authentication error. Please try logging in again.");
+      return;
+    }
+
     setPausing(true);
-  
     try {
-      const response = await fetch('http://localhost:5001/api/subscriptions/pause', {
-        method: 'POST',
+      // Calculate the pause end date
+      const pauseEndDate = new Date();
+      pauseEndDate.setDate(pauseEndDate.getDate() + pauseDuration);
+
+      const response = await fetch("http://localhost:5001/api/subscriptions/pause", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`, // Include the auth token
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          userId: user.id, // Ensure this is the correct user ID
-          pauseDuration, // Ensure this is the selected pause duration
-        }),
+        body: JSON.stringify({ pause_end: pauseEndDate.toISOString() }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to pause subscription.');
+        throw new Error(errorData.message || "Failed to pause subscription");
       }
-  
-      const data = await response.json();
-      console.log('Subscription paused:', data);
-  
-      // Update the UI or state as needed
+
+      const pausedSubscription = await response.json();
+      setUserSubscription(pausedSubscription);
       setShowPauseDialog(false);
-      toast({
-        title: 'Subscription Paused',
-        description: 'Your subscription has been paused successfully.',
-      });
+      toast.success(`Successfully paused subscription for ${pauseDuration} days!`);
     } catch (error) {
-      console.error('Pause error:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Failed to pause subscription.',
-        variant: 'destructive',
-      });
+      console.error("Pause error:", error);
+      toast.error("Failed to pause subscription");
     } finally {
       setPausing(false);
     }
   };
+
   const handleResume = async () => {
     if (!session?.access_token) {
       toast.error("Authentication error. Please try logging in again.");

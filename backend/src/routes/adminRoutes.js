@@ -354,13 +354,45 @@ router.get('/orders', async (req, res, next) => {
             .select(`
                 *,
                 profiles:user_id (
-                    full_name
+                    full_name,
+                    email
+                ),
+                order_items (
+                    id,
+                    quantity,
+                    price_at_time,
+                    products (
+                        id,
+                        name,
+                        image_url
+                    )
                 )
             `)
             .order('created_at', { ascending: false });
 
         if (error) throw error;
         res.json(orders);
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Get single order details
+router.get('/orders/:id', async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { data: order, error } = await supabaseAdmin
+            .rpc('get_order_details', { p_order_id: id });
+
+        if (error) throw error;
+        if (!order) {
+            return res.status(404).json({
+                error: 'Not found',
+                message: 'Order not found',
+                code: 'ORDER_NOT_FOUND'
+            });
+        }
+        res.json(order);
     } catch (error) {
         next(error);
     }
@@ -400,7 +432,20 @@ router.put('/orders/:id/status', async (req, res, next) => {
             .single();
 
         if (error) throw error;
-        res.json(order);
+        if (!order) {
+            return res.status(404).json({
+                error: 'Not found',
+                message: 'Order not found',
+                code: 'ORDER_NOT_FOUND'
+            });
+        }
+
+        // Get updated order details
+        const { data: orderDetails, error: detailsError } = await supabaseAdmin
+            .rpc('get_order_details', { p_order_id: id });
+
+        if (detailsError) throw detailsError;
+        res.json(orderDetails);
     } catch (error) {
         next(error);
     }
@@ -413,9 +458,9 @@ router.post('/products/bulk-status-update', validateBulkOperation, bulkUpdateSta
 router.post('/products/bulk-featured-update', validateBulkOperation, bulkUpdateFeatured);
 
 // Product management routes
-router.get('/product/:id', getProduct);
-router.post('/product', upload.single('image'), createProduct);
-router.put('/product/:id', upload.single('image'), updateProduct);
-router.delete('/product/:id', deleteProduct);
+router.get('/products/:id', getProduct);
+router.post('/products', upload.single('image'), createProduct);
+router.put('/products/:id', upload.single('image'), updateProduct);
+router.delete('/products/:id', authenticateToken, isAdmin, deleteProduct);
 
 export default router; 

@@ -25,8 +25,8 @@ const Cart = () => {
     }
   }, [isAuthLoading]);
 
-  const handleQuantityChange = (id: string, currentQuantity: number, change: number) => {
-    updateQuantity(id, currentQuantity + change);
+  const handleQuantityChange = (id: string, currentQuantity: number, change: number, quantityUnit: string) => {
+    updateQuantity(id, currentQuantity + change, quantityUnit);
   };
 
   if (isLoading) {
@@ -106,14 +106,16 @@ const Cart = () => {
                           <div className="flex-grow">
                             <h3 className="font-medium text-lg">{item.name}</h3>
                             <p className="text-sm text-muted-foreground mt-1">
-                              ₹{item.price.toFixed(2)}
+                              {item.quantityUnit} - ₹{item.basePrice.toFixed(2)}
+                              {item.quantityUnit === "500g" && " (2x price)"}
+                              {item.quantityUnit === "1Kg" && " (4x price with 10% discount)"}
                             </p>
                             <div className="flex items-center gap-4 mt-4">
                               <div className="flex items-center gap-2">
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => handleQuantityChange(item.id, item.quantity, -1)}
+                                  onClick={() => handleQuantityChange(item.id, item.quantity, -1, item.quantityUnit)}
                                   disabled={item.quantity <= 1}
                                   className="h-8 w-8"
                                 >
@@ -123,7 +125,7 @@ const Cart = () => {
                                 <Button
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => handleQuantityChange(item.id, item.quantity, 1)}
+                                  onClick={() => handleQuantityChange(item.id, item.quantity, 1, item.quantityUnit)}
                                   className="h-8 w-8"
                                 >
                                   <Plus className="h-4 w-4" />
@@ -160,7 +162,9 @@ const Cart = () => {
                     <div className="space-y-2">
                       {items.map((item) => (
                         <div key={item.id} className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">{item.name} × {item.quantity}</span>
+                          <span className="text-muted-foreground">
+                            {item.name} × {item.quantity} ({item.quantityUnit})
+                          </span>
                           <span>₹{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                       ))}
@@ -185,4 +189,4 @@ const Cart = () => {
   );
 };
 
-export default Cart; 
+export default Cart;

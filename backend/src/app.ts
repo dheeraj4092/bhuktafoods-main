@@ -6,11 +6,12 @@ import pincodeRoutes from './routes/pincode';
 dotenv.config();
 
 const app = express();
+const expressApp = app();
 
-app.use(cors());
-app.use(express.json());
+expressApp.use(cors());
+expressApp.use(express.json());
 
 // Routes
-app.use('/api', pincodeRoutes);
+expressApp.use('/api', pincodeRoutes);
 
 export default app; 

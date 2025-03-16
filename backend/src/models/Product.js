@@ -22,7 +22,7 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['snacks', 'fresh']
+    enum: ['snacks', 'fresh', 'pickles-veg', 'pickles-nonveg', 'sweets', 'instant-premix', 'podi']
   },
   isAvailable: {
     type: Boolean,

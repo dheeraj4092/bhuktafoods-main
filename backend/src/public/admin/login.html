@@ -36,6 +36,10 @@
         .btn-primary {
             width: 100%;
         }
+        .alert {
+            display: none;
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -46,6 +50,7 @@
                     <div class="login-header">
                         <h1>Snackolicious Admin</h1>
                     </div>
+                    <div id="errorAlert" class="alert alert-danger" role="alert"></div>
                     <form id="loginForm">
                         <div class="mb-3">
                             <label for="email" class="form-label">Email</label>
@@ -55,7 +60,10 @@
                             <label for="password" class="form-label">Password</label>
                             <input type="password" class="form-control" id="password" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Login</button>
+                        <button type="submit" class="btn btn-primary" id="loginButton">
+                            <span id="loginText">Login</span>
+                            <span id="loadingSpinner" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        </button>
                     </form>
                 </div>
             </div>
@@ -69,6 +77,49 @@
         const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRvcGlrcnFhbWRnbHhha3BwYnlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE2MDA5ODEsImV4cCI6MjA1NzE3Njk4MX0.rr-cXk_vlf6HKtCkoUzdbuol1tSusvOq2nMyXgYWSCY';
         const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('adminToken');
+            if (token) {
+                // Verify token validity before redirecting
+                verifyToken(token);
+            }
+        });
+
+        async function verifyToken(token) {
+            try {
+                const { data, error } = await supabase.auth.getUser(token);
+                if (!error && data.user) {
+                    window.location.href = '/admin/index.html';
+                }
+            } catch (error) {
+                console.error('Token verification failed:', error);
+                localStorage.removeItem('adminToken');
+            }
+        }
+
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            errorAlert.textContent = message;
+            errorAlert.style.display = 'block';
+        }
+
+        function setLoading(isLoading) {
+            const loginButton = document.getElementById('loginButton');
+            const loginText = document.getElementById('loginText');
+            const loadingSpinner = document.getElementById('loadingSpinner');
+            
+            if (isLoading) {
+                loginButton.disabled = true;
+                loginText.classList.add('d-none');
+                loadingSpinner.classList.remove('d-none');
+            } else {
+                loginButton.disabled = false;
+                loginText.classList.remove('d-none');
+                loadingSpinner.classList.add('d-none');
+            }
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
@@ -76,6 +127,8 @@
             const password = document.getElementById('password').value;
             
             try {
+                setLoading(true);
+                
                 const { data, error } = await supabase.auth.signInWithPassword({
                     email,
                     password
@@ -93,16 +146,18 @@
                 if (profileError) throw profileError;
                 
                 if (profile.role !== 'admin') {
-                    throw new Error('Admin access required');
+                    throw new Error('Admin access required. Your account does not have administrative privileges.');
                 }
                 
                 // Store session
                 localStorage.setItem('adminToken', data.session.access_token);
                 
                 // Redirect to dashboard
-                window.location.href = '/admin/index.html';
+                window.location.href = '/admin/dashboard';
             } catch (error) {
-                alert(error.message || 'Login failed');
+                setLoading(false);
+                showError(error.message || 'Login failed. Please check your credentials and try again.');
+                console.error('Login error:', error);
             }
         });
     </script>

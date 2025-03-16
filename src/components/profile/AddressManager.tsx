@@ -129,7 +129,10 @@ const AddressManager = () => {
 
   const handleEdit = (address: Address) => {
     setEditingAddress(address);
-    setFormData(address);
+    setFormData({
+      ...address,
+      address_line2: address.address_line2 || "" // Ensure address_line2 is always a string
+    });
     setIsAddingAddress(true);
   };
 

@@ -73,7 +73,7 @@ export const createSubscription = async (req, res) => {
       const fileName = `subscription-${uuidv4()}${fileExt}`;
       const filePath = `subscriptions/${fileName}`; // Store in a subscriptions subfolder
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabaseAdmin.storage
         .from('product-images') // Use the existing product-images bucket
         .upload(filePath, req.file.buffer, {
           contentType: req.file.mimetype
@@ -82,7 +82,7 @@ export const createSubscription = async (req, res) => {
       if (uploadError) throw uploadError;
 
       // Get public URL
-      const { data: { publicUrl } } = supabase.storage
+      const { data: { publicUrl } } = supabaseAdmin.storage
         .from('product-images')
         .getPublicUrl(filePath);
 
@@ -94,7 +94,7 @@ export const createSubscription = async (req, res) => {
     const parsedBenefits = typeof benefits === 'string' ? JSON.parse(benefits) : benefits;
     const parsedRestrictions = typeof restrictions === 'string' ? JSON.parse(restrictions) : restrictions;
 
-    const { data: subscription, error } = await supabase
+    const { data: subscription, error } = await supabaseAdmin
       .from('subscriptions')
       .insert([
         {
@@ -140,7 +140,7 @@ export const updateSubscription = async (req, res) => {
     } = req.body;
 
     // First check if subscription exists
-    const { data: existingSubscription, error: checkError } = await supabase
+    const { data: existingSubscription, error: checkError } = await supabaseAdmin
       .from('subscriptions')
       .select('*')
       .eq('id', id)
@@ -173,13 +173,13 @@ export const updateSubscription = async (req, res) => {
     }
 
     // Handle image upload
-    let image_url = undefined; // undefined means don't update the image_url
+    let image_url = undefined;
     if (req.file) {
       try {
         // Delete old image if it exists
         if (existingSubscription.image_url) {
           const oldPath = existingSubscription.image_url.split('/').slice(-2).join('/');
-          await supabase.storage
+          await supabaseAdmin.storage
             .from('product-images')
             .remove([oldPath]);
         }
@@ -189,7 +189,7 @@ export const updateSubscription = async (req, res) => {
         const fileName = `subscription-${uuidv4()}${fileExt}`;
         const filePath = `subscriptions/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabaseAdmin.storage
           .from('product-images')
           .upload(filePath, req.file.buffer, {
             contentType: req.file.mimetype,
@@ -206,7 +206,7 @@ export const updateSubscription = async (req, res) => {
         }
 
         // Get public URL
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseAdmin.storage
           .from('product-images')
           .getPublicUrl(filePath);
 
@@ -249,7 +249,7 @@ export const updateSubscription = async (req, res) => {
     }
 
     // Update subscription
-    const { data: subscription, error: updateError } = await supabase
+    const { data: subscription, error: updateError } = await supabaseAdmin
       .from('subscriptions')
       .update(updateData)
       .eq('id', id)
@@ -292,7 +292,7 @@ export const deleteSubscription = async (req, res) => {
     const { id } = req.params;
 
     // Get current subscription to delete image if it exists
-    const { data: subscription } = await supabase
+    const { data: subscription } = await supabaseAdmin
       .from('subscriptions')
       .select('image_url')
       .eq('id', id)
@@ -302,12 +302,12 @@ export const deleteSubscription = async (req, res) => {
       // Extract the path from the URL
       const imagePath = subscription.image_url.split('/').slice(-2).join('/');
       // Delete image from storage
-      await supabase.storage
+      await supabaseAdmin.storage
         .from('product-images')
         .remove([imagePath]);
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('subscriptions')
       .delete()
       .eq('id', id);
@@ -753,9 +753,9 @@ export const changeSubscriptionPlan = async (req, res) => {
 export const pauseSubscription = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { pause_until } = req.body;
+    const { pause_end } = req.body;
 
-    const pauseEndDate = new Date(pause_until);
+    const pauseEndDate = new Date(pause_end);
     if (isNaN(pauseEndDate.getTime())) {
       return res.status(400).json({ error: 'Invalid pause date' });
     }
@@ -812,7 +812,7 @@ export const resumeSubscription = async (req, res) => {
       .from('user_subscriptions')
       .update({
         status: 'active',
-        pause_until: null,
+        pause_end: null,
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId)

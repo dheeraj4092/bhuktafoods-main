@@ -184,4 +184,103 @@ export const changePassword = async (req, res) => {
     console.error('Change password error:', error);
     res.status(500).json({ error: 'Error changing password' });
   }
+};
+
+// Handle user signup
+export const handleSignup = async (req, res) => {
+    try {
+        const { email, password, name } = req.body;
+
+        // Validate input
+        if (!email || !password || !name) {
+            return res.status(400).json({
+                error: 'Missing required fields'
+            });
+        }
+
+        // Create user in Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    name
+                }
+            }
+        });
+
+        if (authError) throw authError;
+
+        // Create user profile
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .insert([{
+                id: authData.user.id,
+                email,
+                name
+            }])
+            .select()
+            .single();
+
+        if (profileError) throw profileError;
+
+        // Create shopping cart for the user
+        const { data: cartData, error: cartError } = await supabase
+            .from('shopping_cart')
+            .insert([{
+                user_id: authData.user.id
+            }])
+            .select()
+            .single();
+
+        if (cartError) throw cartError;
+
+        res.status(201).json({
+            message: 'User created successfully',
+            user: profileData,
+            cart: cartData
+        });
+
+    } catch (error) {
+        console.error('Signup error:', error);
+        res.status(500).json({
+            error: 'Error during signup',
+            details: error.message
+        });
+    }
+};
+
+// Handle user login
+export const handleLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        // Validate input
+        if (!email || !password) {
+            return res.status(400).json({
+                error: 'Missing required fields'
+            });
+        }
+
+        // Sign in user
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (error) throw error;
+
+        res.json({
+            message: 'Login successful',
+            session: data.session,
+            user: data.user
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        res.status(401).json({
+            error: 'Authentication failed',
+            details: error.message
+        });
+    }
 }; 

@@ -14,6 +14,8 @@ import NotFound from "./pages/NotFound";
 import Cart from "./pages/Cart";
 import Checkout from "@/pages/Checkout";
 import Subscription from "@/pages/Subscription";
+import OrderSuccess from "@/pages/OrderSuccess";
+import OrderHistory from "@/pages/OrderHistory";
 import { ErrorBoundary } from "react-error-boundary";
 
 const queryClient = new QueryClient();
@@ -45,6 +47,8 @@ const App = () => (
                 <Route path="/cart" element={<Cart />} />
                 <Route path="/checkout" element={<Checkout />} />
                 <Route path="/subscription" element={<Subscription />} />
+                <Route path="/order-success" element={<OrderSuccess />} />
+                <Route path="/orders" element={<OrderHistory />} />
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

@@ -24,49 +24,45 @@ const CategoryCard = ({
     <Link
       to={link}
       className={cn(
-        "group relative overflow-hidden rounded-3xl flex flex-col h-[400px]",
-        "transition-all duration-500 transform hover:-translate-y-1",
-        `hover:shadow-lg hover:shadow-${colorAccent}/10`
+        "group relative overflow-hidden rounded-2xl flex flex-col",
+        "bg-white border border-border/50",
+        "transition-all duration-300 hover:shadow-lg hover:border-transparent",
+        "transform hover:-translate-y-1"
       )}
     >
-      {/* Image with overlay gradient */}
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Image Container */}
+      <div className="relative aspect-[4/3] overflow-hidden">
         {!isImageLoaded && (
-          <div className="absolute inset-0 bg-secondary loading-shimmer" />
+          <div className="absolute inset-0 bg-secondary/20 loading-shimmer" />
         )}
         <img
           src={image}
           alt={title}
           className={cn(
-            "w-full h-full object-cover transition-transform duration-700 ease-out",
+            "w-full h-full object-cover transition-transform duration-500",
             "group-hover:scale-105",
             !isImageLoaded && "opacity-0",
             isImageLoaded && "opacity-100"
           )}
           onLoad={() => setIsImageLoaded(true)}
         />
-        {/* Gradient overlay */}
-        <div 
-          className={cn(
-            "absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"
-          )}
-        />
       </div>
       
       {/* Content */}
-      <div className="relative mt-auto p-8 z-10 text-white">
+      <div className="p-6 flex flex-col flex-grow">
         <h3 className={cn(
-          "text-3xl font-medium mb-2",
+          "text-xl font-semibold mb-2",
           `text-${colorAccent}`
         )}>
           {title}
         </h3>
-        <p className="text-white/90 mb-6 max-w-xs">
+        <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
           {description}
         </p>
         <div 
           className={cn(
-            "inline-flex items-center text-sm font-medium transition-all duration-300",
+            "mt-auto inline-flex items-center text-sm font-medium",
+            "transition-all duration-300",
             `text-${colorAccent} group-hover:translate-x-1`
           )}
         >

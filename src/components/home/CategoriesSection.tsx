@@ -2,36 +2,66 @@ import CategoryCard from "@/components/ui/CategoryCard";
 
 const CategoriesSection = () => {
   return (
-    <section className="py-16 px-6 lg:px-10 bg-food-light">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-medium mb-4 animate-fade-in">Our Specialties</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto animate-fade-in animate-delay-200">
-            Choose from our traditional homemade snacks that ship nationwide, or freshly prepared local delights for same-day delivery.
+    <section className="py-20 bg-food-light/50">
+      <div className="container mx-auto px-4">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl font-semibold mb-4 animate-fade-in">
+            Our Specialties
+          </h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto text-lg animate-fade-in animate-delay-200">
+            Discover our collection of authentic Indian delicacies, from traditional snacks to fresh foods and more.
           </p>
         </div>
         
-        <div className="grid grid-cols-2 gap-8 animate-fade-in animate-delay-300">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in animate-delay-300">
           <CategoryCard 
             title="Traditional Snacks"
-            description="Authentic homemade snacks prepared with age-old family recipes, available for nationwide and international shipping."
+            description="Authentic homemade snacks prepared with age-old family recipes."
             image="https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//popular-indian-snacks-list.webp"
             link="/products?category=snacks"
             colorAccent="food-snack"
           />
           <CategoryCard 
             title="Fresh Foods"
-            description="Freshly prepared fruit bowls, smoothies, and healthy meals delivered locally on the same day."
+            description="Freshly prepared foods delivered locally on the same day."
             image="https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop"
             link="/products?category=fresh"
             colorAccent="food-fresh"
           />
           <CategoryCard 
-            title="Fast Foods"
-            description="Hot and crispy fast foods delivered locally on the same day."
+            title="Veg Pickles"
+            description="Traditional homemade vegetarian pickles."
             image="https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop"
-            link="/products?category=fast"
-            colorAccent="food-fast"
+            link="/products?category=pickles-veg"
+            colorAccent="green"
+          />
+          <CategoryCard 
+            title="Non-Veg Pickles"
+            description="Authentic non-vegetarian pickles."
+            image="https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop"
+            link="/products?category=pickles-nonveg"
+            colorAccent="red"
+          />
+          <CategoryCard 
+            title="Sweets"
+            description="Traditional Indian sweets and desserts."
+            image="https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop"
+            link="/products?category=sweets"
+            colorAccent="yellow"
+          />
+          <CategoryCard 
+            title="Instant Pre-mix"
+            description="Ready-to-cook instant mixes."
+            image="https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop"
+            link="/products?category=instant-premix"
+            colorAccent="blue"
+          />
+          <CategoryCard 
+            title="Podi"
+            description="Traditional spice powders and podis."
+            image="https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop"
+            link="/products?category=podi"
+            colorAccent="purple"
           />
         </div>
       </div>

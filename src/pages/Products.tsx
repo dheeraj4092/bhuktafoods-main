@@ -223,6 +223,46 @@ const ProductsPage = () => {
                         />
                         <label htmlFor="fresh" className="ml-2">Fresh Foods</label>
                       </div>
+                      <div className="flex items-center">
+                        <Checkbox
+                          id="pickles-veg"
+                          checked={activeFilters.category === "pickles-veg"}
+                          onCheckedChange={() => updateFilter("category", "pickles-veg")}
+                        />
+                        <label htmlFor="pickles-veg" className="ml-2">Veg Pickles</label>
+                      </div>
+                      <div className="flex items-center">
+                        <Checkbox
+                          id="pickles-nonveg"
+                          checked={activeFilters.category === "pickles-nonveg"}
+                          onCheckedChange={() => updateFilter("category", "pickles-nonveg")}
+                        />
+                        <label htmlFor="pickles-nonveg" className="ml-2">Non-Veg Pickles</label>
+                      </div>
+                      <div className="flex items-center">
+                        <Checkbox
+                          id="sweets"
+                          checked={activeFilters.category === "sweets"}
+                          onCheckedChange={() => updateFilter("category", "sweets")}
+                        />
+                        <label htmlFor="sweets" className="ml-2">Sweets</label>
+                      </div>
+                      <div className="flex items-center">
+                        <Checkbox
+                          id="instant-premix"
+                          checked={activeFilters.category === "instant-premix"}
+                          onCheckedChange={() => updateFilter("category", "instant-premix")}
+                        />
+                        <label htmlFor="instant-premix" className="ml-2">Instant Pre-mix</label>
+                      </div>
+                      <div className="flex items-center">
+                        <Checkbox
+                          id="podi"
+                          checked={activeFilters.category === "podi"}
+                          onCheckedChange={() => updateFilter("category", "podi")}
+                        />
+                        <label htmlFor="podi" className="ml-2">Podi</label>
+                      </div>
                     </div>
                   </div>
                   

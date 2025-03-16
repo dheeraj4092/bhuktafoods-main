@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, User, LogIn } from "lucide-react";
+import { ShoppingCart, User, LogIn, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
@@ -48,13 +48,22 @@ const Header = () => {
 
           <div className="flex items-center space-x-3">
             {user ? (
-              <Link 
-                to="/profile" 
-                className="p-2 rounded-full hover:bg-secondary/50 transition-colors"
-                title="Profile"
-              >
-                <User size={18} className="text-muted-foreground hover:text-primary transition-colors" />
-              </Link>
+              <>
+                <Link 
+                  to="/profile" 
+                  className="p-2 rounded-full hover:bg-secondary/50 transition-colors"
+                  title="Profile"
+                >
+                  <User size={18} className="text-muted-foreground hover:text-primary transition-colors" />
+                </Link>
+                <Link 
+                  to="/orders" 
+                  className="p-2 rounded-full hover:bg-secondary/50 transition-colors"
+                  title="Orders"
+                >
+                  <Package size={18} className="text-muted-foreground hover:text-primary transition-colors" />
+                </Link>
+              </>
             ) : (
               <Link 
                 to="/auth" 

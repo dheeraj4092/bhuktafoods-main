@@ -32,12 +32,17 @@ const Auth = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+      
+      // Store the session token in localStorage
+      if (data.session?.access_token) {
+        localStorage.setItem('token', data.session.access_token);
+      }
       
       toast({
         title: "Welcome back!",

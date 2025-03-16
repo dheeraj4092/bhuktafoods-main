@@ -7,14 +7,17 @@ import {
   deleteProduct,
   addProductRating,
   uploadMiddleware,
-  checkProductExists
+  checkProductExists,
+  updateProductAvailability,
+  updateSnackProductsAvailability,
+  getLowStockProducts,
+  getProductStats
 } from '../controllers/productController.js';
 import {
   searchProducts,
   getProductsByCategory,
   getFeaturedProducts,
   updateProductStock,
-  getLowStockProducts,
   addProductVariation,
   getProductVariations
 } from '../controllers/productEnhancedController.js';
@@ -48,22 +51,15 @@ router.get('/debug/product/:id', async (req, res) => {
 });
 
 // Admin routes (requires admin role) - These must come BEFORE the public routes
-router.get('/admin/product/:id', (req, res, next) => {
-  console.log('Admin product route matched:', {
-    path: req.path,
-    method: req.method,
-    params: req.params,
-    headers: req.headers
-  });
-  next();
-}, authenticateToken, isAdmin, getProduct);
-
+router.get('/admin/product/:id', authenticateToken, isAdmin, getProduct);
 router.post('/admin/product', authenticateToken, isAdmin, uploadMiddleware.single('image'), createProduct);
 router.put('/admin/product/:id', authenticateToken, isAdmin, uploadMiddleware.single('image'), updateProduct);
 router.delete('/admin/product/:id', authenticateToken, isAdmin, deleteProduct);
 router.put('/admin/product/:id/stock', authenticateToken, isAdmin, updateProductStock);
 router.get('/admin/low-stock', authenticateToken, isAdmin, getLowStockProducts);
-router.post('/admin/product/:id/variations', authenticateToken, isAdmin, addProductVariation);
+router.get('/admin/stats', authenticateToken, isAdmin, getProductStats);
+router.patch('/admin/product/:id/availability', authenticateToken, isAdmin, updateProductAvailability);
+router.patch('/admin/snacks/availability', authenticateToken, isAdmin, updateSnackProductsAvailability);
 
 // Public routes
 router.get('/', getProducts);

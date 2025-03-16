@@ -1,21 +1,36 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Check } from "lucide-react";
+import { Plus, Check, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { toast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+// Add Supabase URL constant
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+// Add default image URL
+const DEFAULT_IMAGE = `${SUPABASE_URL}/storage/v1/object/public/products/default-product.png`;
 
 export interface ProductProps {
   id: string;
   name: string;
   description: string;
   price: number;
-  image: string;
-  category: "snacks" | "fresh";
+  image?: string;
+  image_url?: string;
+  category: "snacks" | "fresh" | "pickles-veg" | "pickles-nonveg" | "sweets" | "instant-premix" | "podi";
   isAvailable: boolean;
   isPreOrder?: boolean;
   deliveryEstimate?: string;
-  className?: string; // Add this line to support the className prop
+  className?: string;
 }
 
 const ProductCard = ({
@@ -24,6 +39,7 @@ const ProductCard = ({
   description,
   price,
   image,
+  image_url,
   category,
   isAvailable,
   isPreOrder = false,
@@ -32,9 +48,31 @@ const ProductCard = ({
 }: ProductProps) => {
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedQuantity, setSelectedQuantity] = useState<"250g" | "500g" | "1Kg">("250g");
   const { addItem, items } = useCart();
   
-  const isInCart = items.some(item => item.id === id);
+  // Function to get the full image URL
+  const getImageUrl = (imagePath: string | undefined) => {
+    if (!imagePath) {
+      console.warn('No image path provided, using default image');
+      return DEFAULT_IMAGE;
+    }
+    if (imagePath.startsWith('http')) {
+      console.log('Using direct URL:', imagePath);
+      return imagePath;
+    }
+    const url = `${SUPABASE_URL}/storage/v1/object/public/products/${imagePath}`;
+    console.log('Generated Supabase URL:', url);
+    return url;
+  };
+
+  // Use image_url if available, otherwise fall back to image
+  const imageUrl = getImageUrl(image_url || image);
+  
+  const isInCart = items.some(item => 
+    item.productId === id && item.quantityUnit === selectedQuantity
+  );
   
   const formattedPrice = new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -42,28 +80,69 @@ const ProductCard = ({
     maximumFractionDigits: 0,
   }).format(price);
   
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const calculatePrice = (unit: "250g" | "500g" | "1Kg") => {
+    switch (unit) {
+      case "250g":
+        return price;
+      case "500g":
+        return price * 2;
+      case "1Kg":
+        return price * 4 * 0.9; // 10% discount for 1Kg
+      default:
+        return price;
+    }
+  };
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isAvailable) return;
+    if (!isAvailable) {
+      toast({
+        title: "Product unavailable",
+        description: "This product is currently out of stock.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (isAdding) return;
     
     setIsAdding(true);
-    setTimeout(() => {
-      addItem({
-        id,
+    
+    try {
+      await addItem({
+        id: `${id}-${Date.now()}`,
+        productId: id,
         name,
-        price,
-        image,
+        price: calculatePrice(selectedQuantity),
+        basePrice: price,
         quantity: 1,
-        category,
+        quantityUnit: selectedQuantity,
+        category: category as "snacks" | "fresh",
+        image: image_url || image // Use image_url if available, otherwise fall back to image
       });
-      setIsAdding(false);
+      
       toast({
         title: "Added to cart",
-        description: `${name} has been added to your cart.`,
+        description: `${name} (${selectedQuantity}) has been added to your cart.`,
       });
-    }, 300);
+
+      // Show success state for 2 seconds
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add item to cart. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   return (
@@ -80,9 +159,25 @@ const ProductCard = ({
         "absolute top-4 left-4 z-10 py-1 px-3 text-xs font-medium rounded-full",
         category === "snacks" 
           ? "bg-food-snack/10 text-food-snack"
-          : "bg-food-fresh/10 text-food-fresh"
+          : category === "fresh"
+          ? "bg-food-fresh/10 text-food-fresh"
+          : category === "pickles-veg"
+          ? "bg-green-100 text-green-800"
+          : category === "pickles-nonveg"
+          ? "bg-red-100 text-red-800"
+          : category === "sweets"
+          ? "bg-yellow-100 text-yellow-800"
+          : category === "instant-premix"
+          ? "bg-blue-100 text-blue-800"
+          : "bg-purple-100 text-purple-800"
       )}>
-        {category === "snacks" ? "Traditional" : "Fresh"}
+        {category === "snacks" ? "Traditional" 
+          : category === "fresh" ? "Fresh"
+          : category === "pickles-veg" ? "Veg Pickles"
+          : category === "pickles-nonveg" ? "Non-Veg Pickles"
+          : category === "sweets" ? "Sweets"
+          : category === "instant-premix" ? "Instant Pre-mix"
+          : "Podi"}
       </div>
       
       {/* Pre-order Badge */}
@@ -105,7 +200,7 @@ const ProductCard = ({
           <div className="absolute inset-0 bg-secondary loading-shimmer" />
         )}
         <img
-          src={image}
+          src={imageUrl}
           alt={name}
           className={cn(
             "w-full h-full object-cover transition-transform duration-700 ease-out",
@@ -113,7 +208,25 @@ const ProductCard = ({
             !isImageLoaded && "opacity-0",
             isImageLoaded && "opacity-100"
           )}
-          onLoad={() => setIsImageLoaded(true)}
+          onLoad={() => {
+            console.log('Image loaded successfully:', imageUrl);
+            setIsImageLoaded(true);
+          }}
+          onError={(e) => {
+            console.error('Error loading image:', {
+              url: imageUrl,
+              error: e,
+              imagePath: image,
+              supabaseUrl: SUPABASE_URL
+            });
+            // If the image fails to load, try loading the default image
+            if (imageUrl !== DEFAULT_IMAGE) {
+              const img = e.target as HTMLImageElement;
+              img.src = DEFAULT_IMAGE;
+            } else {
+              setIsImageLoaded(true); // Prevent infinite loading state
+            }
+          }}
         />
       </div>
       
@@ -130,29 +243,51 @@ const ProductCard = ({
         )}
         
         {/* Price and Add Button */}
-        <div className="mt-auto pt-4 flex items-center justify-between">
-          <span className="font-medium">{formattedPrice}</span>
-          <button
-            onClick={handleAddToCart}
-            disabled={!isAvailable || isInCart}
-            className={cn(
-              "relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
-              isAvailable && !isInCart 
-                ? "bg-primary text-white hover:bg-primary/90" 
-                : isInCart 
-                  ? "bg-food-fresh text-white" 
-                  : "bg-muted text-muted-foreground cursor-not-allowed"
-            )}
-            aria-label={isInCart ? "Added to cart" : "Add to cart"}
-          >
-            {isAdding ? (
-              <span className="h-5 w-5 border-t-2 border-white rounded-full animate-spin" />
-            ) : isInCart ? (
-              <Check size={18} />
-            ) : (
-              <Plus size={18} />
-            )}
-          </button>
+        <div className="mt-auto pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-medium">{formattedPrice}</span>
+            <Select
+              value={selectedQuantity}
+              onValueChange={(value: "250g" | "500g" | "1Kg") => setSelectedQuantity(value)}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue placeholder="Select quantity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="250g">250g</SelectItem>
+                <SelectItem value="500g">500g</SelectItem>
+                <SelectItem value="1Kg">1Kg</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              {selectedQuantity === "500g" && "2x price"}
+              {selectedQuantity === "1Kg" && "4x price with 10% discount"}
+            </span>
+            <button
+              onClick={handleAddToCart}
+              disabled={!isAvailable || isAdding}
+              className={cn(
+                "relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
+                isAvailable && !isAdding
+                  ? "bg-primary text-white hover:bg-primary/90" 
+                  : isAdding || showSuccess
+                    ? "bg-food-fresh text-white" 
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+              )}
+              aria-label={isAdding || showSuccess ? "Added to cart" : "Add to cart"}
+            >
+              {isAdding ? (
+                <span className="h-5 w-5 border-t-2 border-white rounded-full animate-spin" />
+              ) : showSuccess ? (
+                <Check size={18} />
+              ) : (
+                <Plus size={18} />
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -8,10 +8,18 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { useCart } from "@/context/CartContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const ProductDetail = () => {
   const { productId } = useParams();
   const [quantity, setQuantity] = useState(1);
+  const [selectedQuantity, setSelectedQuantity] = useState<"250g" | "500g" | "1Kg">("250g");
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -40,17 +48,38 @@ const ProductDetail = () => {
     }
   }, [productId]);
   
+  const calculatePrice = (unit: "250g" | "500g" | "1Kg") => {
+    if (!product) return 0;
+    switch (unit) {
+      case "250g":
+        return product.price;
+      case "500g":
+        return product.price * 2;
+      case "1Kg":
+        return product.price * 4 * 0.9; // 10% discount for 1Kg
+      default:
+        return product.price;
+    }
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
     
     addItem({
-      ...product,
-      quantity
+      id: `${product.id}-${Date.now()}`,
+      productId: product.id,
+      name: product.name,
+      price: calculatePrice(selectedQuantity),
+      basePrice: product.price,
+      image: product.image_url,
+      quantity,
+      quantityUnit: selectedQuantity,
+      category: product.category,
     });
     
     toast({
       title: "Added to cart",
-      description: `${quantity} × ${product.name} added to your cart`,
+      description: `${quantity} × ${product.name} (${selectedQuantity}) added to your cart`,
     });
   };
   
@@ -59,12 +88,11 @@ const ProductDetail = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col">
         <Header />
-        <main className="flex-1 container py-8">
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-            <p className="mt-4 text-muted-foreground">Loading product details...</p>
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
         </main>
         <Footer />
@@ -74,44 +102,52 @@ const ProductDetail = () => {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col">
         <Header />
-        <div className="flex-1 flex flex-col items-center justify-center p-6">
-          <AlertTriangle size={48} className="text-red-500 mb-4" />
-          <h1 className="text-2xl font-medium mb-2">Product Not Found</h1>
-          <p className="text-muted-foreground mb-6">Sorry, the product you're looking for doesn't exist.</p>
-          <Button asChild>
-            <Link to="/products">Browse Products</Link>
-          </Button>
-        </div>
+        <main className="flex-grow container mx-auto px-4 py-8">
+          <div className="text-center">
+            <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-medium mb-2">Error Loading Product</h2>
+            <p className="text-muted-foreground mb-4">{error || "Product not found"}</p>
+            <Button asChild>
+              <Link to="/products">Back to Products</Link>
+            </Button>
+          </div>
+        </main>
         <Footer />
       </div>
     );
   }
-  
+
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      
-      <main className="flex-1 py-12 px-6 lg:px-10">
+      <main className="flex-grow container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <Button asChild variant="ghost" className="mb-6">
+          <Button asChild variant="ghost" className="mb-8">
             <Link to="/products">
-              <ArrowLeft size={16} className="mr-2" /> Back to products
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Products
             </Link>
           </Button>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
-            {/* Product Image */}
-            <div className="rounded-2xl overflow-hidden aspect-square">
-              <img 
-                src={product.image_url} 
-                alt={product.name} 
-                className="w-full h-full object-cover"
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+            <div className="space-y-4">
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="w-full aspect-square object-cover rounded-lg"
               />
+              <div className="grid grid-cols-3 gap-4">
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                />
+                {/* Add more product images here if available */}
+              </div>
             </div>
-            
-            {/* Product Details */}
+
             <div className="space-y-6">
               <div>
                 <h1 className="text-3xl font-medium">{product.name}</h1>
@@ -141,8 +177,8 @@ const ProductDetail = () => {
               {/* Quantity selector and Add to Cart */}
               {product.stock_quantity > 0 && (
                 <div className="space-y-4 pt-4">
-                  <div className="flex items-center">
-                    <span className="mr-4">Quantity</span>
+                  <div className="flex items-center gap-4">
+                    <span>Quantity</span>
                     <div className="flex items-center border border-input rounded-md">
                       <button 
                         onClick={decrementQuantity}
@@ -159,13 +195,35 @@ const ProductDetail = () => {
                       </button>
                     </div>
                   </div>
+
+                  <div className="flex items-center gap-4">
+                    <span>Unit</span>
+                    <Select
+                      value={selectedQuantity}
+                      onValueChange={(value: "250g" | "500g" | "1Kg") => setSelectedQuantity(value)}
+                    >
+                      <SelectTrigger className="w-[100px]">
+                        <SelectValue placeholder="Select unit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="250g">250g</SelectItem>
+                        <SelectItem value="500g">500g</SelectItem>
+                        <SelectItem value="1Kg">1Kg</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="text-sm text-muted-foreground">
+                    {selectedQuantity === "500g" && "2x price"}
+                    {selectedQuantity === "1Kg" && "4x price with 10% discount"}
+                  </div>
                   
                   <Button 
                     onClick={handleAddToCart} 
                     size="lg" 
                     className="w-full"
                   >
-                    Add to Cart
+                    Add to Cart - ₹{calculatePrice(selectedQuantity).toFixed(2)}
                   </Button>
                 </div>
               )}

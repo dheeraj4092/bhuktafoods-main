@@ -2,6 +2,7 @@ import multer from 'multer';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '../config/supabase.js';
+import { supabaseAdmin } from '../config/supabase.js';
 
 // Configure multer for memory storage (for Supabase upload)
 const storage = multer.memoryStorage();
@@ -137,38 +138,37 @@ export const getProduct = async (req, res) => {
 // Create product (admin only)
 export const createProduct = async (req, res) => {
   try {
-    // Validate required fields
-    const requiredFields = ['name', 'description', 'price', 'category'];
-    const missingFields = requiredFields.filter(field => !req.body[field]);
-    
-    if (missingFields.length > 0) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        message: `Please provide: ${missingFields.join(', ')}`
-      });
-    }
-
     const {
       name,
       description,
       price,
       category,
-      stock_quantity = 0,
-      is_available = true,
-      is_pre_order = false
+      stock_quantity,
+      is_available,
+      is_pre_order
     } = req.body;
 
-    // Handle image upload
+    // Validate required fields
+    if (!name || !description || !price || !category) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'Please provide all required product information'
+      });
+    }
+
     let image_url = null;
+
+    // Handle image upload if file is present
     if (req.file) {
       const fileExt = path.extname(req.file.originalname);
       const fileName = `product-${uuidv4()}${fileExt}`;
       const filePath = `products/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
+      const { error: uploadError, data } = await supabaseAdmin.storage
         .from('product-images')
         .upload(filePath, req.file.buffer, {
-          contentType: req.file.mimetype
+          contentType: req.file.mimetype,
+          cacheControl: '3600'
         });
 
       if (uploadError) {
@@ -179,14 +179,25 @@ export const createProduct = async (req, res) => {
         });
       }
 
-      const { data: { publicUrl } } = supabase.storage
+      // Get the public URL for the uploaded image
+      const { data: { publicUrl } } = supabaseAdmin.storage
         .from('product-images')
         .getPublicUrl(filePath);
 
       image_url = publicUrl;
+    } else {
+      return res.status(400).json({
+        error: 'Missing image',
+        message: 'Please provide a product image'
+      });
     }
 
-    const { data: product, error } = await supabase
+    // Set default values for optional fields
+    const defaultStock = parseInt(stock_quantity) || 0;
+    const defaultAvailability = is_available === undefined ? true : (is_available === 'true' || is_available === true);
+    const defaultPreOrder = is_pre_order === undefined ? false : (is_pre_order === 'true' || is_pre_order === true);
+
+    const { data: product, error } = await supabaseAdmin
       .from('products')
       .insert([
         {
@@ -195,9 +206,9 @@ export const createProduct = async (req, res) => {
           price: parseFloat(price),
           category,
           image_url,
-          stock_quantity: parseInt(stock_quantity),
-          is_available: is_available === 'true' || is_available === true,
-          is_pre_order: is_pre_order === 'true' || is_pre_order === true
+          stock_quantity: defaultStock,
+          is_available: defaultAvailability,
+          is_pre_order: defaultPreOrder
         }
       ])
       .select()
@@ -225,55 +236,31 @@ export const createProduct = async (req, res) => {
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
+    const { name, description, price, stock_quantity, category, is_available, is_pre_order } = req.body;
+    let image_url = null;
 
-    // Validate ID format (UUID)
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!id || !uuidRegex.test(id)) {
-      return res.status(400).json({ 
-        error: 'Invalid product ID',
-        message: 'Please provide a valid product ID'
-      });
-    }
-
-    // Check if product exists
-    const { data: existingProduct, error: checkError } = await supabase
+    // Get existing product
+    const { data: existingProduct, error: fetchError } = await supabaseAdmin
       .from('products')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (checkError) {
-      console.error('Product check error:', checkError);
-      if (checkError.code === 'PGRST116') {
-        return res.status(404).json({ 
-          error: 'Product not found',
-          message: 'The requested product does not exist'
-        });
-      }
-      return res.status(500).json({ 
-        error: 'Database error',
-        message: 'Failed to check product existence'
-      });
+    if (fetchError) {
+      console.error('Error fetching product:', fetchError);
+      return res.status(500).json({ error: 'Failed to fetch product' });
     }
 
-    const {
-      name,
-      description,
-      price,
-      category,
-      stock_quantity,
-      is_available,
-      is_pre_order
-    } = req.body;
+    if (!existingProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
 
-    // Handle image upload
-    let image_url = undefined;
     if (req.file) {
       try {
         // Delete old image if it exists
         if (existingProduct.image_url) {
           const oldPath = existingProduct.image_url.split('/').slice(-2).join('/');
-          await supabase.storage
+          await supabaseAdmin.storage
             .from('product-images')
             .remove([oldPath]);
         }
@@ -283,7 +270,7 @@ export const updateProduct = async (req, res) => {
         const fileName = `product-${uuidv4()}${fileExt}`;
         const filePath = `products/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabaseAdmin.storage
           .from('product-images')
           .upload(filePath, req.file.buffer, {
             contentType: req.file.mimetype,
@@ -298,7 +285,7 @@ export const updateProduct = async (req, res) => {
           });
         }
 
-        const { data: { publicUrl } } = supabase.storage
+        const { data: { publicUrl } } = supabaseAdmin.storage
           .from('product-images')
           .getPublicUrl(filePath);
 
@@ -312,45 +299,32 @@ export const updateProduct = async (req, res) => {
       }
     }
 
-    // Prepare update data
-    const updateData = {
-      name,
-      description,
-      price: price ? parseFloat(price) : undefined,
-      category,
-      stock_quantity: stock_quantity ? parseInt(stock_quantity) : undefined,
-      is_available: is_available !== undefined ? (is_available === 'true' || is_available === true) : undefined,
-      is_pre_order: is_pre_order !== undefined ? (is_pre_order === 'true' || is_pre_order === true) : undefined,
-      updated_at: new Date().toISOString()
-    };
-
-    // Only update image_url if we have a new one
-    if (image_url !== undefined) {
-      updateData.image_url = image_url;
-    }
-
-    const { data: product, error: updateError } = await supabase
+    // Update product
+    const { data: updatedProduct, error: updateError } = await supabaseAdmin
       .from('products')
-      .update(updateData)
+      .update({
+        name,
+        description,
+        price: parseFloat(price),
+        stock_quantity: parseInt(stock_quantity),
+        category,
+        is_available: is_available === 'true',
+        is_pre_order: is_pre_order === 'true',
+        ...(image_url && { image_url })
+      })
       .eq('id', id)
       .select()
       .single();
 
     if (updateError) {
-      console.error('Update product error:', updateError);
-      return res.status(500).json({ 
-        error: 'Database error',
-        message: 'Failed to update product'
-      });
+      console.error('Error updating product:', updateError);
+      return res.status(500).json({ error: 'Failed to update product' });
     }
 
-    res.json(product);
+    res.json(updatedProduct);
   } catch (error) {
-    console.error('Update product error:', error);
-    res.status(500).json({ 
-      error: 'Server error',
-      message: 'Failed to update product'
-    });
+    console.error('Error in updateProduct:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
@@ -358,51 +332,109 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
+    console.log(`Attempting to delete product with ID: ${id}`);
 
     // Validate ID format (UUID)
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!id || !uuidRegex.test(id)) {
+      console.error(`Invalid product ID format: ${id}`);
       return res.status(400).json({ 
         error: 'Invalid product ID',
         message: 'Please provide a valid product ID'
       });
     }
 
-    // Get current product to delete image if it exists
-    const { data: product } = await supabase
+    // Check if product exists before attempting to delete
+    console.log(`Checking if product exists: ${id}`);
+    const { data: existingProduct, error: checkError } = await supabaseAdmin
       .from('products')
-      .select('image_url')
+      .select('id, name, image_url')
       .eq('id', id)
       .single();
 
-    if (product?.image_url) {
-      // Extract the path from the URL
-      const imagePath = product.image_url.split('/').slice(-2).join('/');
-      // Delete image from storage
-      await supabase.storage
-        .from('product-images')
-        .remove([imagePath]);
-    }
-
-    const { error } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Delete product error:', error);
+    if (checkError) {
+      console.error(`Error checking if product exists: ${checkError.message}`);
       return res.status(500).json({ 
         error: 'Database error',
-        message: 'Failed to delete product'
+        message: 'Failed to check if product exists'
       });
     }
 
-    res.json({ message: 'Product deleted successfully' });
+    if (!existingProduct) {
+      console.error(`Product not found: ${id}`);
+      return res.status(404).json({ 
+        error: 'Not found',
+        message: 'Product not found'
+      });
+    }
+
+    console.log(`Product found: ${JSON.stringify(existingProduct)}`);
+
+    // Delete image if it exists
+    if (existingProduct.image_url) {
+      console.log(`Deleting product image: ${existingProduct.image_url}`);
+      // Extract the path from the URL
+      const imagePath = existingProduct.image_url.split('/').slice(-2).join('/');
+      // Delete image from storage
+      const { error: storageError } = await supabaseAdmin.storage
+        .from('product-images')
+        .remove([imagePath]);
+      
+      if (storageError) {
+        console.error(`Error deleting product image: ${storageError.message}`);
+        // Continue with product deletion even if image deletion fails
+      } else {
+        console.log(`Successfully deleted product image: ${imagePath}`);
+      }
+    }
+
+    // Delete the product
+    console.log(`Deleting product from database: ${id}`);
+    const { error: deleteError, data: deleteData } = await supabaseAdmin
+      .from('products')
+      .delete()
+      .eq('id', id)
+      .select();
+
+    if (deleteError) {
+      console.error(`Error deleting product: ${deleteError.message}`, deleteError);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to delete product',
+        details: deleteError.message
+      });
+    }
+
+    console.log(`Product deletion result:`, deleteData);
+    
+    // Verify the product was actually deleted
+    const { data: verifyProduct, error: verifyError } = await supabaseAdmin
+      .from('products')
+      .select('id')
+      .eq('id', id)
+      .single();
+      
+    if (verifyError && verifyError.code === 'PGRST116') {
+      console.log(`Verified product was deleted successfully: ${id}`);
+    } else if (verifyProduct) {
+      console.error(`Product still exists after deletion: ${id}`);
+      return res.status(500).json({
+        error: 'Deletion verification failed',
+        message: 'Product appears to still exist after deletion attempt'
+      });
+    }
+
+    res.json({ 
+      message: 'Product deleted successfully',
+      productId: id,
+      productName: existingProduct.name
+    });
   } catch (error) {
     console.error('Delete product error:', error);
     res.status(500).json({ 
       error: 'Server error',
-      message: 'Failed to delete product'
+      message: 'Failed to delete product',
+      details: error.message
     });
   }
 };
@@ -469,6 +501,150 @@ export const addProductRating = async (req, res) => {
     res.status(500).json({ 
       error: 'Server error',
       message: 'Failed to add rating'
+    });
+  }
+};
+
+// Update product availability
+export const updateProductAvailability = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { is_available } = req.body;
+
+    if (typeof is_available !== 'boolean') {
+      return res.status(400).json({
+        error: 'Invalid input',
+        message: 'is_available must be a boolean value'
+      });
+    }
+
+    const { data: product, error } = await supabase
+      .from('products')
+      .update({ is_available })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Update product availability error:', error);
+      return res.status(500).json({
+        error: 'Database error',
+        message: 'Failed to update product availability'
+      });
+    }
+
+    res.json(product);
+  } catch (error) {
+    console.error('Update product availability error:', error);
+    res.status(500).json({
+      error: 'Server error',
+      message: 'Failed to update product availability'
+    });
+  }
+};
+
+// Update all snack products availability
+export const updateSnackProductsAvailability = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .update({ 
+        is_available: true,
+        stock_quantity: 100
+      })
+      .eq('category', 'snacks');
+
+    if (error) {
+      console.error('Update snack products error:', error);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to update snack products availability'
+      });
+    }
+
+    res.json({ 
+      message: 'Successfully updated snack products availability',
+      updatedCount: data?.length || 0
+    });
+  } catch (error) {
+    console.error('Update snack products error:', error);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to update snack products availability'
+    });
+  }
+};
+
+// Get low stock products (admin only)
+export const getLowStockProducts = async (req, res) => {
+  try {
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .lt('stock_quantity', 10)
+      .order('stock_quantity', { ascending: true });
+
+    if (error) {
+      console.error('Get low stock products error:', error);
+      return res.status(500).json({ 
+        error: 'Database error',
+        message: 'Failed to fetch low stock products'
+      });
+    }
+
+    res.json(products || []);
+  } catch (error) {
+    console.error('Get low stock products error:', error);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to fetch low stock products'
+    });
+  }
+};
+
+// Get product statistics (admin only)
+export const getProductStats = async (req, res) => {
+  try {
+    // Get total products
+    const { count: totalProducts } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true });
+
+    // Get available products
+    const { count: availableProducts } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .eq('is_available', true);
+
+    // Get low stock products
+    const { count: lowStockProducts } = await supabase
+      .from('products')
+      .select('*', { count: 'exact', head: true })
+      .lt('stock_quantity', 10);
+
+    // Get products by category
+    const { data: categoryStats } = await supabase
+      .from('products')
+      .select('category')
+      .then(({ data }) => {
+        const stats = {};
+        data.forEach(product => {
+          stats[product.category] = (stats[product.category] || 0) + 1;
+        });
+        return stats;
+      });
+
+    res.json({
+      totalProducts,
+      availableProducts,
+      lowStockProducts,
+      categoryStats
+    });
+  } catch (error) {
+    console.error('Get product stats error:', error);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: 'Failed to fetch product statistics'
     });
   }
 }; 

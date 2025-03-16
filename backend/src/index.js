@@ -43,7 +43,7 @@ app.use((req, res, next) => {
 // Serve uploaded files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
-// Serve static files
+// Serve static files - make sure this comes before API routes
 app.use(express.static(path.join(__dirname, 'public')));
 
 // API routes
@@ -57,14 +57,29 @@ app.use('/api/delivery', deliveryRoutes);
 app.use('/api/users', userRoutes); // Ensure this route is correctly defined
 app.use('/api/pincodes', pincodeRoutes);
 
-// Serve admin dashboard
+// Serve admin dashboard - ensure these routes work with the static file serving
 app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+});
+
+app.get('/admin/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+});
+
+// Serve admin dashboard only after authentication
+app.get('/admin/dashboard', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin', 'index.html'));
 });
 
-// Serve admin login
-app.get('/admin/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'admin', 'login.html'));
+// Catch-all route for admin pages to handle client-side routing
+app.get('/admin/*', (req, res) => {
+  // Check if the request is for a static file
+  if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico)$/)) {
+    res.sendFile(path.join(__dirname, 'public', 'admin', req.path));
+    return;
+  }
+  // For all other routes, redirect to login
+  res.redirect('/admin/login');
 });
 
 // Root route
@@ -82,4 +97,6 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 5001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log(`Admin dashboard available at http://localhost:${PORT}/admin`);
+  console.log(`Admin login available at http://localhost:${PORT}/admin/login`);
 });

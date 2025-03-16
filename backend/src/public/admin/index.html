@@ -250,8 +250,13 @@
                         <div class="mb-3">
                             <label for="category" class="form-label">Category</label>
                             <select class="form-control" id="category" name="category" required>
-                                <option value="snacks">Snacks</option>
-                                <option value="fresh">Fresh</option>
+                                <option value="snacks">Traditional Snacks</option>
+                                <option value="fresh">Fresh Foods</option>
+                                <option value="pickles-veg">Veg Pickles</option>
+                                <option value="pickles-nonveg">Non-Veg Pickles</option>
+                                <option value="sweets">Sweets</option>
+                                <option value="instant-premix">Instant Pre-mix</option>
+                                <option value="podi">Podi</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -450,10 +455,13 @@
                         <div class="mb-3">
                             <label class="form-label">Category</label>
                             <select class="form-control" name="category" id="editProductCategory" required>
-                                <option value="snacks">Snacks</option>
-                                <option value="beverages">Beverages</option>
-                                <option value="desserts">Desserts</option>
-                                <option value="other">Other</option>
+                                <option value="snacks">Traditional Snacks</option>
+                                <option value="fresh">Fresh Foods</option>
+                                <option value="pickles-veg">Veg Pickles</option>
+                                <option value="pickles-nonveg">Non-Veg Pickles</option>
+                                <option value="sweets">Sweets</option>
+                                <option value="instant-premix">Instant Pre-mix</option>
+                                <option value="podi">Podi</option>
                             </select>
                         </div>
                         <div class="mb-3">
@@ -490,6 +498,44 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" form="editProductForm" class="btn btn-primary">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Details Modal -->
+    <div class="modal fade" id="orderDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div id="orderDetailsContent">
+                <!-- Content will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Update Modal -->
+    <div class="modal fade" id="statusUpdateModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Order Status</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="statusSelect" class="form-label">Select New Status</label>
+                        <select class="form-select" id="statusSelect">
+                            <option value="">Choose a status...</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancelStatusUpdate">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="updateStatusBtn">Update Status</button>
                 </div>
             </div>
         </div>

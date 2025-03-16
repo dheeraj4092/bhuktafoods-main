@@ -1,4 +1,3 @@
-
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -12,7 +11,7 @@ export type Product = {
   description: string;
   price: number;
   image: string;
-  category: "snacks" | "fresh";
+  category: "snacks" | "fresh" | "pickles-veg" | "pickles-nonveg" | "sweets" | "instant-premix" | "podi";
   isAvailable: boolean;
   isPreOrder?: boolean;
   deliveryEstimate?: string;
@@ -26,10 +25,13 @@ export type Product = {
 
 export type CartItem = {
   id: string;
+  productId: string;
   name: string;
   price: number;
+  basePrice: number; // Price for 250g
   image: string;
   quantity: number;
+  quantityUnit: "250g" | "500g" | "1Kg";
   category: "snacks" | "fresh";
 }
 
