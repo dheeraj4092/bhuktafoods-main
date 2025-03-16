@@ -135,7 +135,7 @@ Thank you for choosing Bhukta Foods! We're preparing your delicious order with c
   };
 
   const handleWhatsAppRedirect = () => {
-    const ADMIN_PHONE = "6300081285"; // Replace with your actual WhatsApp business number
+    const ADMIN_PHONE = "+916300081285"; // Replace with your actual WhatsApp business number
     const message = formatWhatsAppMessage();
     const whatsappUrl = `https://wa.me/${ADMIN_PHONE}?text=${message}`;
     
