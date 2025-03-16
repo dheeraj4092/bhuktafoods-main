@@ -8,17 +8,30 @@ export const getProductImageUrl = (imagePath: string | undefined): string => {
     return DEFAULT_IMAGE;
   }
   
-  // If it's already a full URL, use it directly
-  if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
-    return imagePath;
-  }
-  
   try {
+    // If it's already a full URL, use it directly
+    if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
+      return imagePath;
+    }
+    
+    // If it starts with 'data:', it's a base64 image
+    if (imagePath.startsWith('data:')) {
+      return imagePath;
+    }
+    
     // Clean the path and ensure proper format for Supabase storage
     const cleanPath = imagePath.replace(/^\/+/, '').trim();
-    return `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/product-images/${cleanPath}`;
+    
+    // If the path already includes the bucket name, don't add it again
+    const bucketPath = cleanPath.startsWith('product-images/') 
+      ? cleanPath 
+      : `product-images/${cleanPath}`;
+      
+    // Construct the full Supabase storage URL
+    return `https://${SUPABASE_PROJECT_ID}.supabase.co/storage/v1/object/public/${bucketPath}`;
   } catch (error) {
     console.error('Error constructing image URL:', error);
+    console.error('Original image path:', imagePath);
     return DEFAULT_IMAGE;
   }
 };

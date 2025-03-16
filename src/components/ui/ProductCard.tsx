@@ -237,16 +237,17 @@ const ProductCard = ({
           src={imageUrl}
           alt={product.name}
           className={cn(
-            "object-cover w-full h-full transition-opacity duration-300",
-            isImageLoaded ? "opacity-100" : "opacity-0"
+            "w-full h-full object-cover transition-opacity duration-300",
+            !isImageLoaded && "opacity-0",
+            isImageLoaded && "opacity-100"
           )}
-          onLoad={(e: React.SyntheticEvent<HTMLImageElement>) => setIsImageLoaded(true)}
-          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+          onLoad={() => setIsImageLoaded(true)}
+          onError={(e) => {
             console.error('Error loading image:', {
               url: imageUrl,
               originalPath: product.image_url || product.image
             });
-            const img = e.currentTarget;
+            const img = e.target as HTMLImageElement;
             img.src = DEFAULT_PRODUCT_IMAGE;
             setIsImageLoaded(true);
           }}

@@ -137,7 +137,7 @@ const ProductDetail = () => {
     );
   }
 
-  const imageUrl = getProductImageUrl(product.image_url || product.image);
+  const imageUrl = getProductImageUrl(product?.image_url || product?.image);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -184,6 +184,10 @@ const ProductDetail = () => {
                   src={imageUrl}
                   alt={product.name}
                   className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                  onError={(e) => {
+                    const img = e.target as HTMLImageElement;
+                    img.src = DEFAULT_PRODUCT_IMAGE;
+                  }}
                 />
                 {/* Add more product images here if available */}
               </div>
