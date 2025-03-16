@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -15,8 +16,16 @@ import {
   Candy, 
   Package, 
   Sprout,
-  Soup
+  Soup,
+  Menu,
+  X
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const categories = [
   {
@@ -71,60 +80,111 @@ const categories = [
 ];
 
 const NavigationMenuComponent = () => {
-  return (
-    <NavigationMenu>
-      <NavigationMenuList className="gap-6">
-        <NavigationMenuItem>
+  const [isOpen, setIsOpen] = useState(false);
+
+  const MobileNav = () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden">
+          <Menu className="h-6 w-6" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+        <nav className="flex flex-col gap-4">
           <Link 
             to="/" 
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            className="text-lg font-medium hover:text-primary transition-colors"
+            onClick={() => setIsOpen(false)}
           >
             Home
           </Link>
-        </NavigationMenuItem>
-        
-        <NavigationMenuItem>
-          <NavigationMenuTrigger className="text-sm font-medium">Products</NavigationMenuTrigger>
-          <NavigationMenuContent>
-            <ul className="grid w-[400px] gap-1 p-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-lg font-medium">Products</p>
+            <div className="grid gap-2 pl-4">
               {categories.map((category) => (
-                <li key={category.href}>
-                  <NavigationMenuLink asChild>
-                    <Link
-                      to={category.href}
-                      className={cn(
-                        "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none",
-                        "transition-colors hover:bg-accent hover:text-accent-foreground",
-                        "focus:bg-accent focus:text-accent-foreground",
-                        "group"
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <category.icon className={cn("h-5 w-5", category.color)} />
-                        <div>
-                          <div className="text-sm font-medium leading-none">{category.title}</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            {category.description}
-                          </p>
-                        </div>
-                      </div>
-                    </Link>
-                  </NavigationMenuLink>
-                </li>
+                <Link
+                  key={category.href}
+                  to={category.href}
+                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                  onClick={() => setIsOpen(false)}
+                >
+                  <category.icon className={cn("h-4 w-4", category.color)} />
+                  {category.title}
+                </Link>
               ))}
-            </ul>
-          </NavigationMenuContent>
-        </NavigationMenuItem>
-
-        <NavigationMenuItem>
+            </div>
+          </div>
           <Link 
             to="/subscription" 
-            className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+            className="text-lg font-medium hover:text-primary transition-colors"
+            onClick={() => setIsOpen(false)}
           >
             Subscriptions
           </Link>
-        </NavigationMenuItem>
-      </NavigationMenuList>
+        </nav>
+      </SheetContent>
+    </Sheet>
+  );
+
+  const DesktopNav = () => (
+    <NavigationMenuList className="hidden md:flex gap-6">
+      <NavigationMenuItem>
+        <Link 
+          to="/" 
+          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          Home
+        </Link>
+      </NavigationMenuItem>
+      
+      <NavigationMenuItem>
+        <NavigationMenuTrigger className="text-sm font-medium">Products</NavigationMenuTrigger>
+        <NavigationMenuContent>
+          <ul className="grid w-[400px] gap-1 p-4">
+            {categories.map((category) => (
+              <li key={category.href}>
+                <NavigationMenuLink asChild>
+                  <Link
+                    to={category.href}
+                    className={cn(
+                      "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none",
+                      "transition-colors hover:bg-accent hover:text-accent-foreground",
+                      "focus:bg-accent focus:text-accent-foreground",
+                      "group"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <category.icon className={cn("h-5 w-5", category.color)} />
+                      <div>
+                        <div className="text-sm font-medium leading-none">{category.title}</div>
+                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                          {category.description}
+                        </p>
+                      </div>
+                    </div>
+                  </Link>
+                </NavigationMenuLink>
+              </li>
+            ))}
+          </ul>
+        </NavigationMenuContent>
+      </NavigationMenuItem>
+
+      <NavigationMenuItem>
+        <Link 
+          to="/subscription" 
+          className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          Subscriptions
+        </Link>
+      </NavigationMenuItem>
+    </NavigationMenuList>
+  );
+
+  return (
+    <NavigationMenu className="flex justify-between items-center w-full">
+      <MobileNav />
+      <DesktopNav />
     </NavigationMenu>
   );
 };

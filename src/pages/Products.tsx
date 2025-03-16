@@ -4,11 +4,19 @@ import { Filter, SlidersHorizontal, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FloatingCart from "@/components/ui/FloatingCart";
 import ProductCard from "@/components/ui/ProductCard";
 import PincodeCheck from "@/components/ui/PincodeCheck";
+import { cn } from "@/lib/utils";
 
 const ProductsPage = () => {
   const location = useLocation();
@@ -124,6 +132,82 @@ const ProductsPage = () => {
     setIsDeliveryAvailable(false);
   };
 
+  const FilterSection = ({ isMobile = false }) => (
+    <div className={cn("flex flex-col gap-6", isMobile ? "p-6" : "")}>
+      <div>
+        <h3 className="font-medium mb-4">Categories</h3>
+        <div className="space-y-3">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="all"
+              checked={activeFilters.category === "all"}
+              onCheckedChange={() => updateFilter("category", "all")}
+            />
+            <label htmlFor="all" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+              All Products
+            </label>
+          </div>
+          {["snacks", "fresh", "pickles-veg", "pickles-nonveg", "sweets", "instant-premix", "podi"].map((category) => (
+            <div key={category} className="flex items-center space-x-2">
+              <Checkbox
+                id={category}
+                checked={activeFilters.category === category}
+                onCheckedChange={() => updateFilter("category", category)}
+              />
+              <label htmlFor={category} className="text-sm font-medium leading-none capitalize peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                {category.replace("-", " ")}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      <div>
+        <h3 className="font-medium mb-4">Availability</h3>
+        <div className="space-y-3">
+          {["all", "available", "preorder"].map((availability) => (
+            <div key={availability} className="flex items-center space-x-2">
+              <Checkbox
+                id={availability}
+                checked={activeFilters.availability === availability}
+                onCheckedChange={() => updateFilter("availability", availability)}
+              />
+              <label htmlFor={availability} className="text-sm font-medium leading-none capitalize peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                {availability === "all" ? "Show All" : availability}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Separator />
+
+      <div>
+        <h3 className="font-medium mb-4">Sort By</h3>
+        <div className="space-y-3">
+          {[
+            { value: "newest", label: "Newest First" },
+            { value: "price-low", label: "Price: Low to High" },
+            { value: "price-high", label: "Price: High to Low" }
+          ].map(({ value, label }) => (
+            <div key={value} className="flex items-center space-x-2">
+              <Checkbox
+                id={value}
+                checked={activeFilters.sortBy === value}
+                onCheckedChange={() => updateFilter("sortBy", value)}
+              />
+              <label htmlFor={value} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                {label}
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-background">
@@ -155,213 +239,65 @@ const ProductsPage = () => {
   }
   
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 container py-4 sm:py-8 px-4 sm:px-6 lg:px-8">
-        {/* Show PincodeCheck for Fresh Foods and Subscriptions */}
-        {(activeFilters.category === "fresh" || location.pathname === "/subscription") && (
-          <div className="mb-8">
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-2xl font-semibold">Our Products</h1>
+          
+          {/* Mobile filter dialog */}
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="lg:hidden">
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
+              <SheetHeader>
+                <SheetTitle>Filters</SheetTitle>
+              </SheetHeader>
+              <FilterSection isMobile />
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        <div className="flex gap-8">
+          {/* Desktop filters */}
+          <div className="hidden lg:block w-64 flex-shrink-0">
+            <FilterSection />
+          </div>
+
+          {/* Product grid */}
+          <div className="flex-1">
             <PincodeCheck
               onDeliveryAvailable={handleDeliveryAvailable}
               onDeliveryUnavailable={handleDeliveryUnavailable}
             />
-          </div>
-        )}
-
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
-          {/* Filters */}
-          <div className="lg:w-64 order-2 lg:order-1">
-            <div className="lg:sticky lg:top-24">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base sm:text-lg font-medium">Filters</h2>
+            
+            {loading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+                {[1, 2, 3, 4, 5, 6].map((n) => (
+                  <div key={n} className="h-[300px] bg-gray-200 rounded-lg"></div>
+                ))}
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-500">{error}</p>
                 <Button
-                  variant="ghost"
-                  size="sm"
-                  className="lg:hidden flex items-center"
-                  onClick={() => setMobileFiltersOpen(!mobileFiltersOpen)}
+                  variant="outline"
+                  onClick={() => window.location.reload()}
+                  className="mt-4"
                 >
-                  {mobileFiltersOpen ? (
-                    <>
-                      <X className="h-4 w-4 mr-2" />
-                      Hide Filters
-                    </>
-                  ) : (
-                    <>
-                      <SlidersHorizontal className="h-4 w-4 mr-2" />
-                      Show Filters
-                    </>
-                  )}
+                  Try Again
                 </Button>
               </div>
-              
-              <div className={`lg:block ${mobileFiltersOpen ? 'block bg-white/95 backdrop-blur-sm lg:bg-transparent fixed inset-0 top-[60px] z-40 p-6 lg:p-0 overflow-y-auto' : 'hidden'}`}>
-                <div className="space-y-6 max-w-sm mx-auto lg:max-w-none">
-                  <div>
-                    <h3 className="font-medium mb-3">Category</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="all"
-                          checked={activeFilters.category === "all"}
-                          onCheckedChange={() => updateFilter("category", "all")}
-                        />
-                        <label htmlFor="all" className="ml-2">All Products</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="snacks"
-                          checked={activeFilters.category === "snacks"}
-                          onCheckedChange={() => updateFilter("category", "snacks")}
-                        />
-                        <label htmlFor="snacks" className="ml-2">Traditional Snacks</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="fresh"
-                          checked={activeFilters.category === "fresh"}
-                          onCheckedChange={() => updateFilter("category", "fresh")}
-                        />
-                        <label htmlFor="fresh" className="ml-2">Fresh Foods</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="pickles-veg"
-                          checked={activeFilters.category === "pickles-veg"}
-                          onCheckedChange={() => updateFilter("category", "pickles-veg")}
-                        />
-                        <label htmlFor="pickles-veg" className="ml-2">Veg Pickles</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="pickles-nonveg"
-                          checked={activeFilters.category === "pickles-nonveg"}
-                          onCheckedChange={() => updateFilter("category", "pickles-nonveg")}
-                        />
-                        <label htmlFor="pickles-nonveg" className="ml-2">Non-Veg Pickles</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="sweets"
-                          checked={activeFilters.category === "sweets"}
-                          onCheckedChange={() => updateFilter("category", "sweets")}
-                        />
-                        <label htmlFor="sweets" className="ml-2">Sweets</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="instant-premix"
-                          checked={activeFilters.category === "instant-premix"}
-                          onCheckedChange={() => updateFilter("category", "instant-premix")}
-                        />
-                        <label htmlFor="instant-premix" className="ml-2">Instant Pre-mix</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="podi"
-                          checked={activeFilters.category === "podi"}
-                          onCheckedChange={() => updateFilter("category", "podi")}
-                        />
-                        <label htmlFor="podi" className="ml-2">Podi</label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h3 className="font-medium mb-3">Availability</h3>
-                    <div className="space-y-2">
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="all-availability"
-                          checked={activeFilters.availability === "all"}
-                          onCheckedChange={() => updateFilter("availability", "all")}
-                        />
-                        <label htmlFor="all-availability" className="ml-2">All</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="available"
-                          checked={activeFilters.availability === "available"}
-                          onCheckedChange={() => updateFilter("availability", "available")}
-                        />
-                        <label htmlFor="available" className="ml-2">In Stock</label>
-                      </div>
-                      <div className="flex items-center">
-                        <Checkbox
-                          id="preorder"
-                          checked={activeFilters.availability === "preorder"}
-                          onCheckedChange={() => updateFilter("availability", "preorder")}
-                        />
-                        <label htmlFor="preorder" className="ml-2">Pre-order</label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <Separator />
-                  
-                  <div>
-                    <h3 className="font-medium mb-3">Sort By</h3>
-                    <div className="flex flex-wrap">
-                      <Button
-                        variant={activeFilters.sortBy === "newest" ? "default" : "outline"}
-                        size="sm"
-                        className="mr-2 mb-2"
-                        onClick={() => updateFilter("sortBy", "newest")}
-                      >
-                        Newest
-                      </Button>
-                      <Button
-                        variant={activeFilters.sortBy === "price-low" ? "default" : "outline"}
-                        size="sm"
-                        className="mr-2 mb-2"
-                        onClick={() => updateFilter("sortBy", "price-low")}
-                      >
-                        Price: Low to High
-                      </Button>
-                      <Button
-                        variant={activeFilters.sortBy === "price-high" ? "default" : "outline"}
-                        size="sm"
-                        className="mr-2 mb-2"
-                        onClick={() => updateFilter("sortBy", "price-high")}
-                      >
-                        Price: High to Low
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Products Grid */}
-          <div className="flex-1 order-1 lg:order-2">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-              <h1 className="text-xl sm:text-2xl font-medium">
-                {activeFilters.category === "all" 
-                  ? "All Products" 
-                  : activeFilters.category === "snacks"
-                    ? "Traditional Snacks"
-                    : "Fresh Foods"}
-              </h1>
-              <div className="flex items-center text-sm text-muted-foreground">
-                <span>{filteredProducts.length} products</span>
-              </div>
-            </div>
-            
-            {filteredProducts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No products found matching your criteria.</p>
-              </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                {filteredProducts.map((product) => (
-                  <Link 
-                    key={product.id} 
-                    to={`/products/${product.id}`}
-                    className="block transform transition-transform hover:scale-[1.02]"
-                  >
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredProducts.map((product) => (
                     <ProductCard
+                      key={product.id}
                       id={product.id}
                       name={product.name}
                       description={product.description}
@@ -372,9 +308,15 @@ const ProductsPage = () => {
                       isPreOrder={product.stock_quantity === 0}
                       deliveryEstimate={product.delivery_estimate}
                     />
-                  </Link>
-                ))}
-              </div>
+                  ))}
+                </div>
+                
+                {filteredProducts.length === 0 && (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No products found matching your criteria.</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
