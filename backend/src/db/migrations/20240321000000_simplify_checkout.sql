@@ -14,40 +14,79 @@ AS $$
 DECLARE
   v_order_id UUID;
   v_item JSONB;
+  v_product_stock INTEGER;
+  v_required_quantity INTEGER;
 BEGIN
-  -- Create order
-  INSERT INTO orders (user_id, total_amount, shipping_address, status)
-  VALUES (p_user_id, p_total_amount, p_shipping_address, 'processing')
-  RETURNING id INTO v_order_id;
+  -- Start transaction
+  BEGIN
+    -- Validate stock for all items first
+    FOR v_item IN SELECT * FROM unnest(p_items)
+    LOOP
+      -- Get current stock
+      SELECT stock_quantity INTO v_product_stock
+      FROM products
+      WHERE id = (v_item->>'product_id')::UUID
+      FOR UPDATE;  -- Lock the row to prevent concurrent updates
 
-  -- Create order items and update stock
-  FOR v_item IN SELECT * FROM unnest(p_items)
-  LOOP
-    -- Create order item
-    INSERT INTO order_items (order_id, product_id, quantity, price_at_time)
-    VALUES (
-      v_order_id,
-      (v_item->>'product_id')::UUID,
-      (v_item->>'quantity')::INTEGER,
-      (v_item->>'unit_price')::DECIMAL
+      IF v_product_stock IS NULL THEN
+        RAISE EXCEPTION 'Product not found: %', (v_item->>'product_id')::UUID;
+      END IF;
+
+      -- Calculate required quantity
+      v_required_quantity := (v_item->>'quantity')::INTEGER;
+
+      -- Check if enough stock is available
+      IF v_product_stock < v_required_quantity THEN
+        RAISE EXCEPTION 'Insufficient stock for product %: have %, need %',
+          (v_item->>'product_id')::UUID, v_product_stock, v_required_quantity;
+      END IF;
+    END LOOP;
+
+    -- Create order
+    INSERT INTO orders (user_id, total_amount, shipping_address, status)
+    VALUES (p_user_id, p_total_amount, p_shipping_address, 'processing')
+    RETURNING id INTO v_order_id;
+
+    -- Create order items and update stock
+    FOR v_item IN SELECT * FROM unnest(p_items)
+    LOOP
+      -- Create order item with quantity_unit
+      INSERT INTO order_items (
+        order_id, 
+        product_id, 
+        quantity, 
+        quantity_unit,
+        price_at_time
+      )
+      VALUES (
+        v_order_id,
+        (v_item->>'product_id')::UUID,
+        (v_item->>'quantity')::INTEGER,
+        (v_item->>'quantity_unit')::VARCHAR,
+        (v_item->>'unit_price')::DECIMAL
+      );
+
+      -- Update product stock
+      UPDATE products
+      SET stock_quantity = stock_quantity - (v_item->>'quantity')::INTEGER
+      WHERE id = (v_item->>'product_id')::UUID;
+    END LOOP;
+
+    -- Clear cart items
+    DELETE FROM cart_items
+    WHERE cart_id IN (
+      SELECT id FROM shopping_cart WHERE user_id = p_user_id
     );
 
-    -- Update product stock
-    UPDATE products
-    SET stock_quantity = stock_quantity - (v_item->>'quantity')::INTEGER
-    WHERE id = (v_item->>'product_id')::UUID;
-  END LOOP;
-
-  -- Clear cart items
-  DELETE FROM cart_items
-  WHERE cart_id IN (
-    SELECT id FROM shopping_cart WHERE user_id = p_user_id
-  );
-
-  RETURN jsonb_build_object(
-    'success', true,
-    'order_id', v_order_id
-  );
+    -- Commit transaction
+    RETURN jsonb_build_object(
+      'success', true,
+      'order_id', v_order_id
+    );
+  EXCEPTION WHEN OTHERS THEN
+    -- Rollback transaction on any error
+    RAISE;
+  END;
 END;
 $$;
 
