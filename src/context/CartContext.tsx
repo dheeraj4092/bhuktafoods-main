@@ -2,6 +2,9 @@ import { createContext, useContext, useReducer, useEffect, ReactNode } from "rea
 import { CartItem } from "@/lib/utils";
 import { useAuth } from "./AuthContext";
 
+// Add API base URL from environment variable
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 interface CartContextType {
   items: CartItem[];
   addItem: (item: CartItem) => void;
@@ -131,7 +134,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     dispatch({ type: "SET_LOADING", payload: true });
     try {
-      const response = await fetch("http://localhost:5001/api/cart", {
+      const response = await fetch(`${API_BASE_URL}/api/cart`, {
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },
@@ -215,7 +218,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       let response;
-      let endpoint = "http://localhost:5001/api/cart";
+      let endpoint = `${API_BASE_URL}/api/cart`;
       let options: RequestInit = {
         headers: {
           Authorization: `Bearer ${session.access_token}`,

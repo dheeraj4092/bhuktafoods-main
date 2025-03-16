@@ -37,6 +37,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PincodeCheck from "@/components/ui/PincodeCheck";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 interface Subscription {
   id: string;
   name: string;
@@ -109,24 +111,24 @@ const Subscription = () => {
     const fetchData = async () => {
       try {
         // Fetch available subscriptions
-        const subsResponse = await fetch("http://localhost:5001/api/subscriptions");
+        const subsResponse = await fetch(`${API_BASE_URL}/api/subscriptions`);
         const subsData = await subsResponse.json();
         setSubscriptions(subsData);
 
         // Fetch user's subscription data if logged in
         if (user && session?.access_token) {
           const [userSubResponse, historyResponse, analyticsResponse] = await Promise.all([
-            fetch("http://localhost:5001/api/subscriptions/user/active", {
+            fetch(`${API_BASE_URL}/api/subscriptions/user/active`, {
               headers: {
                 Authorization: `Bearer ${session.access_token}`,
               },
             }),
-            fetch("http://localhost:5001/api/subscriptions/history", {
+            fetch(`${API_BASE_URL}/api/subscriptions/history`, {
               headers: {
                 Authorization: `Bearer ${session.access_token}`,
               },
             }),
-            fetch("http://localhost:5001/api/subscriptions/analytics", {
+            fetch(`${API_BASE_URL}/api/subscriptions/analytics`, {
               headers: {
                 Authorization: `Bearer ${session.access_token}`,
               },
@@ -199,9 +201,9 @@ const Subscription = () => {
 
     setSubscribing(true);
     try {
-      console.log("Making subscription request to:", "http://localhost:5001/api/subscriptions/subscribe"); // Debug log
+      console.log("Making subscription request to:", `${API_BASE_URL}/api/subscriptions/subscribe`); // Debug log
       
-      const response = await fetch("http://localhost:5001/api/subscriptions/subscribe", {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/subscribe`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -234,10 +236,10 @@ const Subscription = () => {
       
       // Refresh subscription data
       const [historyResponse, analyticsResponse] = await Promise.all([
-        fetch("http://localhost:5001/api/subscriptions/history", {
+        fetch(`${API_BASE_URL}/api/subscriptions/history`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         }),
-        fetch("http://localhost:5001/api/subscriptions/analytics", {
+        fetch(`${API_BASE_URL}/api/subscriptions/analytics`, {
           headers: { Authorization: `Bearer ${session.access_token}` },
         }),
       ]);
@@ -274,7 +276,7 @@ const Subscription = () => {
 
     setCancelling(true);
     try {
-      const response = await fetch("http://localhost:5001/api/subscriptions/cancel", {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/cancel`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -300,7 +302,7 @@ const Subscription = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:5001/api/subscriptions/renew", {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/renew`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -326,7 +328,7 @@ const Subscription = () => {
 
     setChangingPlan(true);
     try {
-      const response = await fetch("http://localhost:5001/api/subscriptions/change-plan", {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/change-plan`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -360,7 +362,7 @@ const Subscription = () => {
       const pauseEndDate = new Date();
       pauseEndDate.setDate(pauseEndDate.getDate() + pauseDuration);
 
-      const response = await fetch("http://localhost:5001/api/subscriptions/pause", {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/pause`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -394,7 +396,7 @@ const Subscription = () => {
 
     setResuming(true);
     try {
-      const response = await fetch("http://localhost:5001/api/subscriptions/resume", {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/resume`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -421,7 +423,7 @@ const Subscription = () => {
 
     setCancelling(true);
     try {
-      const response = await fetch("http://localhost:5001/api/subscriptions/cancel", {
+      const response = await fetch(`${API_BASE_URL}/api/subscriptions/cancel`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${session?.access_token}`,
@@ -635,7 +637,7 @@ const Subscription = () => {
                 <DropdownMenuItem
                   onClick={async () => {
                     try {
-                      const response = await fetch("http://localhost:5001/api/subscriptions/auto-renew", {
+                      const response = await fetch(`${API_BASE_URL}/api/subscriptions/auto-renew`, {
                         method: "POST",
                         headers: {
                           "Content-Type": "application/json",

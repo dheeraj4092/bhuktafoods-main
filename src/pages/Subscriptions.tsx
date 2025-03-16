@@ -9,6 +9,8 @@ import Footer from "../components/layout/Footer";
 import FloatingCart from "../components/ui/FloatingCart"; 
 import PincodeCheck from "../components/ui/PincodeCheck";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const SubscriptionsPage = () => {
   const navigate = useNavigate();
   const [isDeliveryAvailable, setIsDeliveryAvailable] = useState<boolean | null>(null);
@@ -20,7 +22,7 @@ const SubscriptionsPage = () => {
     const fetchSubscriptions = async () => {
       try {
         setLoading(true);
-        const response = await fetch('http://localhost:5001/api/subscriptions');
+        const response = await fetch(`${API_BASE_URL}/api/subscriptions`);
         if (!response.ok) {
           throw new Error('Failed to fetch subscriptions');
         }

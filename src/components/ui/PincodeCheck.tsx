@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 interface PincodeCheckProps {
   onDeliveryAvailable: () => void;
   onDeliveryUnavailable: () => void;
@@ -27,7 +29,7 @@ const PincodeCheck = ({ onDeliveryAvailable, onDeliveryUnavailable }: PincodeChe
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5001/api/delivery/check-pincode?pincode=${pincode}`);
+      const response = await fetch(`${API_BASE_URL}/api/delivery/check-pincode?pincode=${pincode}`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);

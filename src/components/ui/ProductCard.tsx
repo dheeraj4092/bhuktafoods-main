@@ -16,8 +16,11 @@ import {
 // Add Supabase URL constant
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-// Add default image URL
-const DEFAULT_IMAGE = `${SUPABASE_URL}/storage/v1/object/public/products/default-product.png`;
+// Import default image
+import defaultProductImage from '@/assets/default-product.svg';
+
+// Add default image URL - first try remote, fallback to local
+const DEFAULT_IMAGE = defaultProductImage;
 
 export interface ProductProps {
   id: string;
@@ -55,16 +58,27 @@ const ProductCard = ({
   // Function to get the full image URL
   const getImageUrl = (imagePath: string | undefined) => {
     if (!imagePath) {
-      console.warn('No image path provided, using default image');
+      console.log('No image path provided, using default image');
       return DEFAULT_IMAGE;
     }
+    
+    // If it's already a full URL, use it directly
     if (imagePath.startsWith('http')) {
       console.log('Using direct URL:', imagePath);
       return imagePath;
     }
-    const url = `${SUPABASE_URL}/storage/v1/object/public/products/${imagePath}`;
-    console.log('Generated Supabase URL:', url);
-    return url;
+    
+    // If it's a relative path, construct the full Supabase URL
+    try {
+      // Remove any leading 'products/' from the path as it's already included in the storage path
+      const cleanPath = imagePath.replace(/^products\//, '');
+      const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/products/${cleanPath}`;
+      console.log('Generated Supabase URL:', url);
+      return url;
+    } catch (error) {
+      console.error('Error constructing image URL:', error);
+      return DEFAULT_IMAGE;
+    }
   };
 
   // Use image_url if available, otherwise fall back to image
@@ -197,7 +211,9 @@ const ProductCard = ({
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden">
         {!isImageLoaded && (
-          <div className="absolute inset-0 bg-secondary loading-shimmer" />
+          <div className="absolute inset-0 bg-secondary flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          </div>
         )}
         <img
           src={imageUrl}
@@ -216,16 +232,12 @@ const ProductCard = ({
             console.error('Error loading image:', {
               url: imageUrl,
               error: e,
-              imagePath: image,
-              supabaseUrl: SUPABASE_URL
+              imagePath: image_url || image
             });
-            // If the image fails to load, try loading the default image
-            if (imageUrl !== DEFAULT_IMAGE) {
-              const img = e.target as HTMLImageElement;
-              img.src = DEFAULT_IMAGE;
-            } else {
-              setIsImageLoaded(true); // Prevent infinite loading state
-            }
+            // If the image fails to load, use the local default image
+            const img = e.target as HTMLImageElement;
+            img.src = DEFAULT_IMAGE;
+            setIsImageLoaded(true);
           }}
         />
       </div>

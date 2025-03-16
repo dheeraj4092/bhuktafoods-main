@@ -11,6 +11,8 @@ import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const Checkout = () => {
   const { items, totalPrice, clearCart } = useCart();
   const { user, session } = useAuth();
@@ -92,7 +94,7 @@ const Checkout = () => {
       };
   
       // Send the order to the backend
-      const orderResponse = await fetch("http://localhost:5001/api/orders", {
+      const orderResponse = await fetch(`${API_BASE_URL}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

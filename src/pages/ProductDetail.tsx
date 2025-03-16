@@ -16,6 +16,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+
 const ProductDetail = () => {
   const { productId } = useParams();
   const [quantity, setQuantity] = useState(1);
@@ -29,7 +31,7 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://localhost:5001/api/products/${productId}`);
+        const response = await fetch(`${API_BASE_URL}/api/products/${productId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch product');
         }
