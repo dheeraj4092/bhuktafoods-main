@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,11 +56,41 @@ const ProductCard = ({
   const [selectedQuantity, setSelectedQuantity] = useState<"250g" | "500g" | "1Kg">("250g");
   const { addItem, items } = useCart();
   
-  // Get the image URL using the shared utility
-  const imageUrl = getProductImageUrl(image_url || image);
+  // Initialize product state with props
+  const [product, setProduct] = useState({
+    id,
+    name,
+    description,
+    price,
+    image,
+    image_url,
+    category,
+    isAvailable,
+    isPreOrder,
+    deliveryEstimate
+  });
+  
+  // Update product state when props change
+  useEffect(() => {
+    setProduct({
+      id,
+      name,
+      description,
+      price,
+      image,
+      image_url,
+      category,
+      isAvailable,
+      isPreOrder,
+      deliveryEstimate
+    });
+  }, [id, name, description, price, image, image_url, category, isAvailable, isPreOrder, deliveryEstimate]);
+  
+  // Get the image URL using the shared utility and product state
+  const imageUrl = getProductImageUrl(product.image_url || product.image);
   
   const isInCart = items.some(item => 
-    item.productId === id && item.quantityUnit === selectedQuantity
+    item.productId === product.id && item.quantityUnit === selectedQuantity
   );
   
   const formattedPrice = new Intl.NumberFormat('en-IN', {
@@ -86,7 +116,7 @@ const ProductCard = ({
     e.preventDefault();
     e.stopPropagation();
     
-    if (!isAvailable) {
+    if (!product.isAvailable) {
       toast({
         title: "Product unavailable",
         description: "This product is currently out of stock.",
@@ -101,20 +131,20 @@ const ProductCard = ({
     
     try {
       await addItem({
-        id: `${id}-${Date.now()}`,
-        productId: id,
-        name,
+        id: `${product.id}-${Date.now()}`,
+        productId: product.id,
+        name: product.name,
         price: calculatePrice(selectedQuantity),
         basePrice: price,
         quantity: 1,
         quantityUnit: selectedQuantity,
-        category: category as "snacks" | "fresh",
-        image: image_url || image // Use image_url if available, otherwise fall back to image
+        category: product.category as "snacks" | "fresh",
+        image: product.image_url || product.image // Use image_url if available, otherwise fall back to image
       });
       
       toast({
         title: "Added to cart",
-        description: `${name} (${selectedQuantity}) has been added to your cart.`,
+        description: `${product.name} (${selectedQuantity}) has been added to your cart.`,
       });
 
       // Show success state for 2 seconds
@@ -147,55 +177,55 @@ const ProductCard = ({
 
   return (
     <Link
-      to={`/products/${id}`}
+      to={`/products/${product.id}`}
       onClick={handleCardClick}
       className={cn(
         "group relative overflow-hidden rounded-2xl flex flex-col bg-white border border-border transition-all duration-300",
         "hover:shadow-lg hover:border-transparent transform hover:-translate-y-1",
-        !isAvailable && "opacity-70",
+        !product.isAvailable && "opacity-70",
         className
       )}
     >
       {/* Category Tag */}
       <div className={cn(
         "absolute top-2 sm:top-4 left-2 sm:left-4 z-10 py-1 px-2 sm:px-3 text-xs font-medium rounded-full",
-        category === "snacks" 
+        product.category === "snacks" 
           ? "bg-food-snack/10 text-food-snack"
-          : category === "fresh"
+          : product.category === "fresh"
           ? "bg-food-fresh/10 text-food-fresh"
-          : category === "pickles-veg"
+          : product.category === "pickles-veg"
           ? "bg-green-100 text-green-800"
-          : category === "pickles-nonveg"
+          : product.category === "pickles-nonveg"
           ? "bg-red-100 text-red-800"
-          : category === "sweets"
+          : product.category === "sweets"
           ? "bg-yellow-100 text-yellow-800"
-          : category === "instant-premix"
+          : product.category === "instant-premix"
           ? "bg-blue-100 text-blue-800"
           : "bg-purple-100 text-purple-800"
       )}>
-        {category === "snacks" ? "Traditional" 
-          : category === "fresh" ? "Fresh"
-          : category === "pickles-veg" ? "Veg Pickles"
-          : category === "pickles-nonveg" ? "Non-Veg Pickles"
-          : category === "sweets" ? "Sweets"
-          : category === "instant-premix" ? "Instant Pre-mix"
+        {product.category === "snacks" ? "Traditional" 
+          : product.category === "fresh" ? "Fresh"
+          : product.category === "pickles-veg" ? "Veg Pickles"
+          : product.category === "pickles-nonveg" ? "Non-Veg Pickles"
+          : product.category === "sweets" ? "Sweets"
+          : product.category === "instant-premix" ? "Instant Pre-mix"
           : "Podi"}
       </div>
       
       {/* Pre-order Badge */}
-      {isPreOrder && isAvailable && (
+      {product.isPreOrder && product.isAvailable && (
         <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-10 py-1 px-2 sm:px-3 bg-food-accent/10 text-food-accent text-xs font-medium rounded-full">
           Pre-order
         </div>
       )}
       
       {/* Out of Stock Badge */}
-      {!isAvailable && (
+      {!product.isAvailable && (
         <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-10 py-1 px-2 sm:px-3 bg-muted text-muted-foreground text-xs font-medium rounded-full">
           Out of Stock
         </div>
       )}
-      
+
       {/* Image Container */}
       <div className="relative aspect-square overflow-hidden">
         {!isImageLoaded && (
@@ -205,19 +235,18 @@ const ProductCard = ({
         )}
         <img
           src={imageUrl}
-          alt={name}
+          alt={product.name}
           className={cn(
-            "w-full h-full object-cover transition-opacity duration-300",
-            !isImageLoaded && "opacity-0",
-            isImageLoaded && "opacity-100"
+            "object-cover w-full h-full transition-opacity duration-300",
+            isImageLoaded ? "opacity-100" : "opacity-0"
           )}
-          onLoad={() => setIsImageLoaded(true)}
-          onError={(e) => {
+          onLoad={(e: React.SyntheticEvent<HTMLImageElement>) => setIsImageLoaded(true)}
+          onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
             console.error('Error loading image:', {
               url: imageUrl,
-              originalPath: image_url || image
+              originalPath: product.image_url || product.image
             });
-            const img = e.target as HTMLImageElement;
+            const img = e.currentTarget;
             img.src = DEFAULT_PRODUCT_IMAGE;
             setIsImageLoaded(true);
           }}
@@ -226,13 +255,13 @@ const ProductCard = ({
       
       {/* Content */}
       <div className="p-3 sm:p-5 flex flex-col flex-grow" onClick={(e) => e.stopPropagation()}>
-        <h3 className="font-medium text-base sm:text-lg text-foreground">{name}</h3>
-        <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{description}</p>
+        <h3 className="font-medium text-base sm:text-lg text-foreground">{product.name}</h3>
+        <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{product.description}</p>
         
         {/* Delivery Estimate (only for fresh) */}
-        {category === "fresh" && deliveryEstimate && (
+        {product.category === "fresh" && product.deliveryEstimate && (
           <p className="mt-2 sm:mt-3 text-xs font-medium text-food-fresh">
-            {isPreOrder ? "Pre-order for " : "Delivery in "}{deliveryEstimate}
+            {product.isPreOrder ? "Pre-order for " : "Delivery in "}{product.deliveryEstimate}
           </p>
         )}
         
@@ -262,10 +291,10 @@ const ProductCard = ({
             </span>
             <button
               onClick={handleAddToCart}
-              disabled={!isAvailable || isAdding}
+              disabled={!product.isAvailable || isAdding}
               className={cn(
                 "relative w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-300",
-                isAvailable && !isAdding
+                product.isAvailable && !isAdding
                   ? "bg-primary text-white hover:bg-primary/90" 
                   : isAdding || showSuccess
                     ? "bg-food-fresh text-white" 
