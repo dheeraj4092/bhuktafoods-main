@@ -241,9 +241,9 @@ const ProductsPage = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-semibold">Our Products</h1>
+      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-24">
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <h1 className="text-xl sm:text-2xl font-semibold">Our Products</h1>
           
           {/* Mobile filter dialog */}
           <Sheet>
@@ -253,11 +253,11 @@ const ProductsPage = () => {
                 Filters
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-              <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
-              </SheetHeader>
-              <FilterSection isMobile />
+            <SheetContent side="left" className="w-[300px] sm:w-[400px] p-0">
+              <div className="p-6">
+                <h2 className="text-lg font-semibold mb-4">Filters</h2>
+                <FilterSection isMobile />
+              </div>
             </SheetContent>
           </Sheet>
         </div>
@@ -280,9 +280,9 @@ const ProductsPage = () => {
             )}
             
             {loading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                 {[1, 2, 3, 4, 5, 6].map((n) => (
-                  <div key={n} className="h-[300px] bg-gray-200 rounded-lg"></div>
+                  <div key={n} className="h-[300px] bg-gray-200 rounded-lg animate-pulse"></div>
                 ))}
               </div>
             ) : error ? (
@@ -298,7 +298,7 @@ const ProductsPage = () => {
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {filteredProducts.map((product) => (
                     <ProductCard
                       key={product.id}
@@ -317,7 +317,7 @@ const ProductsPage = () => {
                 
                 {filteredProducts.length === 0 && (
                   <div className="text-center py-12">
-                    <p className="text-gray-500">No products found matching your criteria.</p>
+                    <p className="text-muted-foreground">No products found matching your criteria.</p>
                   </div>
                 )}
               </>

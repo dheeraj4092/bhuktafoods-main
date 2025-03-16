@@ -31,8 +31,8 @@ const HeroSection = () => {
             </p>
             <div className="flex items-center gap-4 pt-4">
               <Button asChild size="lg" className="px-6 font-medium rounded-full">
-                <Link to="/products?category=snacks">
-                  Explore Traditional Snacks <ArrowRight size={16} className="ml-2" />
+                <Link to="/products">
+                  View All Products <ArrowRight size={16} className="ml-2" />
                 </Link>
               </Button>
             </div>

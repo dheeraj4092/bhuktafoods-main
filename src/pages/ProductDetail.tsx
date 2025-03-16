@@ -31,11 +31,21 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
+        console.log('Fetching product with ID:', productId);
         const response = await fetch(`${API_BASE_URL}/api/products/${productId}`);
+        console.log('API Response status:', response.status);
+        
         if (!response.ok) {
-          throw new Error('Failed to fetch product');
+          throw new Error(`Failed to fetch product: ${response.status} ${response.statusText}`);
         }
+        
         const data = await response.json();
+        console.log('Product data received:', data);
+        
+        if (!data) {
+          throw new Error('No product data received');
+        }
+        
         setProduct(data);
       } catch (err) {
         console.error('Error fetching product:', err);

@@ -62,17 +62,17 @@ const ProductCard = ({
       return DEFAULT_IMAGE;
     }
     
-    // If it's already a full URL, use it directly
-    if (imagePath.startsWith('http')) {
+    // If it's already a full URL (including Supabase storage URLs), use it directly
+    if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
       console.log('Using direct URL:', imagePath);
       return imagePath;
     }
     
     // If it's a relative path, construct the full Supabase URL
     try {
-      // Remove any leading 'products/' from the path as it's already included in the storage path
-      const cleanPath = imagePath.replace(/^products\//, '');
-      const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/products/${cleanPath}`;
+      // Remove any leading slashes and 'products/' from the path
+      const cleanPath = imagePath.replace(/^\/*(products\/)*/, '');
+      const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/${cleanPath}`;
       console.log('Generated Supabase URL:', url);
       return url;
     } catch (error) {
@@ -170,7 +170,7 @@ const ProductCard = ({
     >
       {/* Category Tag */}
       <div className={cn(
-        "absolute top-4 left-4 z-10 py-1 px-3 text-xs font-medium rounded-full",
+        "absolute top-2 sm:top-4 left-2 sm:left-4 z-10 py-1 px-2 sm:px-3 text-xs font-medium rounded-full",
         category === "snacks" 
           ? "bg-food-snack/10 text-food-snack"
           : category === "fresh"
@@ -196,14 +196,14 @@ const ProductCard = ({
       
       {/* Pre-order Badge */}
       {isPreOrder && isAvailable && (
-        <div className="absolute top-4 right-4 z-10 py-1 px-3 bg-food-accent/10 text-food-accent text-xs font-medium rounded-full">
+        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-10 py-1 px-2 sm:px-3 bg-food-accent/10 text-food-accent text-xs font-medium rounded-full">
           Pre-order
         </div>
       )}
       
       {/* Out of Stock Badge */}
       {!isAvailable && (
-        <div className="absolute top-4 right-4 z-10 py-1 px-3 bg-muted text-muted-foreground text-xs font-medium rounded-full">
+        <div className="absolute top-2 sm:top-4 right-2 sm:right-4 z-10 py-1 px-2 sm:px-3 bg-muted text-muted-foreground text-xs font-medium rounded-full">
           Out of Stock
         </div>
       )}
@@ -232,9 +232,9 @@ const ProductCard = ({
             console.error('Error loading image:', {
               url: imageUrl,
               error: e,
-              imagePath: image_url || image
+              originalPath: image_url || image
             });
-            // If the image fails to load, use the local default image
+            // If the image fails to load, use the default image
             const img = e.target as HTMLImageElement;
             img.src = DEFAULT_IMAGE;
             setIsImageLoaded(true);
@@ -243,27 +243,27 @@ const ProductCard = ({
       </div>
       
       {/* Content */}
-      <div className="p-5 flex flex-col flex-grow">
-        <h3 className="font-medium text-lg text-foreground">{name}</h3>
-        <p className="mt-1.5 text-sm text-muted-foreground line-clamp-2">{description}</p>
+      <div className="p-3 sm:p-5 flex flex-col flex-grow">
+        <h3 className="font-medium text-base sm:text-lg text-foreground">{name}</h3>
+        <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{description}</p>
         
         {/* Delivery Estimate (only for fresh) */}
         {category === "fresh" && deliveryEstimate && (
-          <p className="mt-3 text-xs font-medium text-food-fresh">
+          <p className="mt-2 sm:mt-3 text-xs font-medium text-food-fresh">
             {isPreOrder ? "Pre-order for " : "Delivery in "}{deliveryEstimate}
           </p>
         )}
         
         {/* Price and Add Button */}
-        <div className="mt-auto pt-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-medium">{formattedPrice}</span>
+        <div className="mt-auto pt-3 sm:pt-4 space-y-2 sm:space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-medium text-sm sm:text-base">{formattedPrice}</span>
             <Select
               value={selectedQuantity}
               onValueChange={(value: "250g" | "500g" | "1Kg") => setSelectedQuantity(value)}
             >
-              <SelectTrigger className="w-[100px]">
-                <SelectValue placeholder="Select quantity" />
+              <SelectTrigger className="w-[80px] sm:w-[100px] h-8 sm:h-10">
+                <SelectValue placeholder="Qty" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="250g">250g</SelectItem>
@@ -274,7 +274,7 @@ const ProductCard = ({
           </div>
           
           <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">
+            <span className="text-xs sm:text-sm text-muted-foreground">
               {selectedQuantity === "500g" && "2x price"}
               {selectedQuantity === "1Kg" && "4x price with 10% discount"}
             </span>
@@ -282,7 +282,7 @@ const ProductCard = ({
               onClick={handleAddToCart}
               disabled={!isAvailable || isAdding}
               className={cn(
-                "relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300",
+                "relative w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all duration-300",
                 isAvailable && !isAdding
                   ? "bg-primary text-white hover:bg-primary/90" 
                   : isAdding || showSuccess
@@ -292,11 +292,11 @@ const ProductCard = ({
               aria-label={isAdding || showSuccess ? "Added to cart" : "Add to cart"}
             >
               {isAdding ? (
-                <span className="h-5 w-5 border-t-2 border-white rounded-full animate-spin" />
+                <span className="h-4 w-4 sm:h-5 sm:w-5 border-t-2 border-white rounded-full animate-spin" />
               ) : showSuccess ? (
-                <Check size={18} />
+                <Check size={16} className="sm:size-18" />
               ) : (
-                <Plus size={18} />
+                <Plus size={16} className="sm:size-18" />
               )}
             </button>
           </div>
