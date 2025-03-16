@@ -8,7 +8,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { useCart } from "@/context/CartContext";
-import defaultProductImage from '@/assets/default-product.svg';
+import { getProductImageUrl, DEFAULT_PRODUCT_IMAGE } from "@/lib/image-utils";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -16,11 +17,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { cn } from "@/lib/utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const DEFAULT_IMAGE = defaultProductImage;
 
 const ProductDetail = () => {
   const { productId } = useParams();
@@ -31,24 +30,6 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
   const [isImageLoaded, setIsImageLoaded] = useState(false);
   const { addItem } = useCart();
-
-  const getImageUrl = (imagePath: string | undefined) => {
-    if (!imagePath) {
-      return DEFAULT_IMAGE;
-    }
-    
-    if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
-      return imagePath;
-    }
-    
-    try {
-      const cleanPath = imagePath.replace(/^\/+/, '').trim();
-      return `${SUPABASE_URL}/storage/v1/object/public/product-images/${cleanPath}`;
-    } catch (error) {
-      console.error('Error constructing image URL:', error);
-      return DEFAULT_IMAGE;
-    }
-  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -73,11 +54,7 @@ const ProductDetail = () => {
           throw new Error('No product data received');
         }
         
-        // Ensure the image URL is properly set
-        setProduct({
-          ...data,
-          image_url: data.image_url || data.image
-        });
+        setProduct(data);
       } catch (err) {
         console.error('Error fetching product:', err);
         setError(err.message);
@@ -112,7 +89,7 @@ const ProductDetail = () => {
       name: product.name,
       price: calculatePrice(selectedQuantity),
       basePrice: product.price,
-      image: product.image_url,
+      image: getProductImageUrl(product.image_url || product.image),
       quantity,
       quantityUnit: selectedQuantity,
       category: product.category,
@@ -160,6 +137,8 @@ const ProductDetail = () => {
     );
   }
 
+  const imageUrl = getProductImageUrl(product.image_url || product.image);
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -181,7 +160,7 @@ const ProductDetail = () => {
                   </div>
                 )}
                 <img
-                  src={getImageUrl(product.image_url || product.image)}
+                  src={imageUrl}
                   alt={product.name}
                   className={cn(
                     "w-full h-full object-cover transition-opacity duration-300",
@@ -191,18 +170,18 @@ const ProductDetail = () => {
                   onLoad={() => setIsImageLoaded(true)}
                   onError={(e) => {
                     console.error('Error loading image:', {
-                      url: product.image_url || product.image,
+                      url: imageUrl,
                       originalPath: product.image_url || product.image
                     });
                     const img = e.target as HTMLImageElement;
-                    img.src = DEFAULT_IMAGE;
+                    img.src = DEFAULT_PRODUCT_IMAGE;
                     setIsImageLoaded(true);
                   }}
                 />
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <img
-                  src={getImageUrl(product.image_url || product.image)}
+                  src={imageUrl}
                   alt={product.name}
                   className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                 />

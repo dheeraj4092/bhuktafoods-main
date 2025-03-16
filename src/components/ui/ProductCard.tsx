@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, Check, Image as ImageIcon } from "lucide-react";
+import { Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { getProductImageUrl, DEFAULT_PRODUCT_IMAGE } from "@/lib/image-utils";
 import {
   Select,
   SelectContent,
@@ -55,30 +56,8 @@ const ProductCard = ({
   const [selectedQuantity, setSelectedQuantity] = useState<"250g" | "500g" | "1Kg">("250g");
   const { addItem, items } = useCart();
   
-  // Function to get the full image URL
-  const getImageUrl = (imagePath: string | undefined) => {
-    if (!imagePath) {
-      return DEFAULT_IMAGE;
-    }
-    
-    // If it's already a full URL, use it directly
-    if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
-      return imagePath;
-    }
-    
-    // Construct the Supabase storage URL
-    try {
-      // Clean the path and ensure proper format
-      const cleanPath = imagePath.replace(/^\/+/, '').trim();
-      return `${SUPABASE_URL}/storage/v1/object/public/product-images/${cleanPath}`;
-    } catch (error) {
-      console.error('Error constructing image URL:', error);
-      return DEFAULT_IMAGE;
-    }
-  };
-
-  // Use image_url if available, otherwise fall back to image
-  const imageUrl = getImageUrl(image_url || image);
+  // Get the image URL using the shared utility
+  const imageUrl = getProductImageUrl(image_url || image);
   
   const isInCart = items.some(item => 
     item.productId === id && item.quantityUnit === selectedQuantity
@@ -228,21 +207,18 @@ const ProductCard = ({
           src={imageUrl}
           alt={name}
           className={cn(
-            "w-full h-full object-cover transition-transform duration-700 ease-out",
-            "group-hover:scale-105",
+            "w-full h-full object-cover transition-opacity duration-300",
             !isImageLoaded && "opacity-0",
             isImageLoaded && "opacity-100"
           )}
-          onLoad={() => {
-            setIsImageLoaded(true);
-          }}
+          onLoad={() => setIsImageLoaded(true)}
           onError={(e) => {
             console.error('Error loading image:', {
               url: imageUrl,
               originalPath: image_url || image
             });
             const img = e.target as HTMLImageElement;
-            img.src = DEFAULT_IMAGE;
+            img.src = DEFAULT_PRODUCT_IMAGE;
             setIsImageLoaded(true);
           }}
         />
