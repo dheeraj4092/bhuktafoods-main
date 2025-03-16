@@ -71,9 +71,23 @@ const Checkout = () => {
       return;
     }
 
+    // Check for valid session
+    if (!session?.access_token) {
+      toast.error("Your session has expired. Please log in again.");
+      navigate("/auth", { state: { from: "/checkout" } });
+      return;
+    }
+
     setIsProcessing(true);
   
     try {
+      // Log session state for debugging
+      console.log('Session state:', {
+        user: user?.id,
+        sessionExpiry: session?.expires_at,
+        hasAccessToken: !!session?.access_token
+      });
+
       // Prepare the order payload
       const orderPayload = {
         items: items.map(item => ({
@@ -91,20 +105,44 @@ const Checkout = () => {
         },
         total_amount: parseFloat(totalPrice.toString())
       };
+
+      // Log request details for debugging
+      console.log('Order request:', {
+        url: `${API_BASE_URL}/api/orders`,
+        payload: orderPayload,
+        hasAuthHeader: true
+      });
   
       // Send the order to the backend
       const orderResponse = await fetch(`${API_BASE_URL}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(orderPayload),
       });
   
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
-        console.error('Order creation failed:', errorData);
+        console.error('Order creation failed:', {
+          status: orderResponse.status,
+          statusText: orderResponse.statusText,
+          error: errorData
+        });
+        
+        // Handle specific error cases
+        if (orderResponse.status === 401) {
+          toast.error("Your session has expired. Please log in again.");
+          navigate("/auth", { state: { from: "/checkout" } });
+          return;
+        }
+        
+        if (orderResponse.status === 403) {
+          toast.error("You don't have permission to create orders. Please contact support.");
+          return;
+        }
+        
         throw new Error(errorData.error || errorData.details || "Failed to create order");
       }
   
@@ -138,7 +176,15 @@ const Checkout = () => {
         state: orderState
       });
     } catch (error) {
-      console.error("Checkout error:", error);
+      console.error("Checkout error:", {
+        error,
+        sessionState: {
+          hasUser: !!user,
+          hasSession: !!session,
+          hasAccessToken: !!session?.access_token
+        }
+      });
+      
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
