@@ -21,11 +21,12 @@ BEGIN
   FOR v_item IN SELECT * FROM unnest(p_items)
   LOOP
     -- Create order item
-    INSERT INTO order_items (order_id, product_id, quantity, price_at_time)
+    INSERT INTO order_items (order_id, product_id, quantity, quantity_unit, price_at_time)
     VALUES (
       v_order_id,
       (v_item->>'product_id')::UUID,
       (v_item->>'quantity')::INTEGER,
+      (v_item->>'quantity_unit')::VARCHAR,
       (v_item->>'unit_price')::DECIMAL
     );
 

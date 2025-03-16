@@ -95,6 +95,7 @@ CREATE TABLE order_items (
     order_id UUID REFERENCES orders(id) ON DELETE CASCADE NOT NULL,
     product_id UUID REFERENCES products(id) NOT NULL,
     quantity INTEGER NOT NULL,
+    quantity_unit VARCHAR(10) NOT NULL DEFAULT '250g' CHECK (quantity_unit IN ('250g', '500g', '1Kg')),
     price DECIMAL(10,2) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );

@@ -44,6 +44,7 @@ export interface Database {
           order_id: string
           product_id: string
           quantity: number
+          quantity_unit: '250g' | '500g' | '1Kg'
           price_at_time: number
           created_at: string
         }
@@ -52,6 +53,7 @@ export interface Database {
           order_id: string
           product_id: string
           quantity: number
+          quantity_unit: '250g' | '500g' | '1Kg'
           price_at_time: number
           created_at?: string
         }
@@ -60,6 +62,7 @@ export interface Database {
           order_id?: string
           product_id?: string
           quantity?: number
+          quantity_unit?: '250g' | '500g' | '1Kg'
           price_at_time?: number
           created_at?: string
         }

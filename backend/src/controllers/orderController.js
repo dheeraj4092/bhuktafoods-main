@@ -28,7 +28,7 @@ export const createOrder = async (req, res) => {
       if (!item.product_id || !item.quantity || !item.quantity_unit || !item.unit_price) {
         return res.status(400).json({ 
           error: 'Invalid item format',
-          details: 'Each item must have product_id, quantity, quantity_unit, and unit_price'
+          details: `Each item must have product_id, quantity, quantity_unit, and unit_price. Missing fields in item: ${JSON.stringify(item)}`
         });
       }
 
@@ -36,7 +36,7 @@ export const createOrder = async (req, res) => {
       if (!['250g', '500g', '1Kg'].includes(item.quantity_unit)) {
         return res.status(400).json({ 
           error: 'Invalid quantity_unit',
-          details: 'Quantity unit must be one of: 250g, 500g, 1Kg'
+          details: `Quantity unit must be one of: 250g, 500g, 1Kg. Got: ${item.quantity_unit}`
         });
       }
 
@@ -44,7 +44,7 @@ export const createOrder = async (req, res) => {
       if (item.quantity <= 0) {
         return res.status(400).json({
           error: 'Invalid quantity',
-          details: 'Quantity must be greater than 0'
+          details: `Quantity must be greater than 0. Got: ${item.quantity} for product ${item.product_id}`
         });
       }
     }
@@ -76,9 +76,16 @@ export const createOrder = async (req, res) => {
         });
       }
 
+      if (error.message?.includes('quantity_unit')) {
+        return res.status(400).json({ 
+          error: 'Invalid quantity unit',
+          details: 'Please ensure all items have a valid quantity unit (250g, 500g, or 1Kg)'
+        });
+      }
+
       return res.status(500).json({ 
         error: 'Failed to create order',
-        details: 'An unexpected error occurred while processing your order'
+        details: 'An unexpected error occurred while processing your order. Please try again.'
       });
     }
 
@@ -117,7 +124,7 @@ export const createOrder = async (req, res) => {
     console.error('Order creation error:', error);
     res.status(500).json({ 
       error: 'Server error',
-      details: 'An unexpected error occurred while processing your order'
+      details: 'An unexpected error occurred while processing your order. Please try again later.'
     });
   }
 };

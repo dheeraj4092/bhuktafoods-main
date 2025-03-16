@@ -81,7 +81,7 @@ const Checkout = () => {
           product_id: item.productId,
           quantity: item.quantity,
           quantity_unit: item.quantityUnit,
-          unit_price: item.price,
+          unit_price: item.basePrice,
           name: item.name
         })),
         shipping_address: {
@@ -105,7 +105,8 @@ const Checkout = () => {
   
       if (!orderResponse.ok) {
         const errorData = await orderResponse.json();
-        throw new Error(errorData.error || "Failed to create order");
+        console.error('Order creation failed:', errorData);
+        throw new Error(errorData.error || errorData.details || "Failed to create order");
       }
   
       const data = await orderResponse.json();

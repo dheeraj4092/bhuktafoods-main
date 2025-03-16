@@ -1,5 +1,8 @@
+// @ts-ignore
 import express from 'express';
+// @ts-ignore
 import { Pool } from 'pg';
+// @ts-ignore
 import { authenticateToken } from '../middleware/auth';
 
 const router = express.Router();
@@ -45,39 +48,54 @@ router.post('/', authenticateToken, async (req, res) => {
       );
       const orderId = orderResult.rows[0].id;
 
-      // Insert order details
+      // Insert order items
       for (const item of orderData.items) {
         await pool.query(
-          `INSERT INTO order_details 
-           (order_id, product_id, quantity, quantity_unit, unit_price, name)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
+          `INSERT INTO order_items 
+           (order_id, product_id, quantity, quantity_unit, price_at_time)
+           VALUES ($1, $2, $3, $4, $5)`,
           [
             orderId,
             item.product_id,
             item.quantity,
             item.quantity_unit,
-            item.unit_price,
-            item.name
+            item.unit_price
           ]
+        );
+
+        // Update product stock
+        await pool.query(
+          `UPDATE products 
+           SET stock_quantity = stock_quantity - $1 
+           WHERE id = $2`,
+          [item.quantity, item.product_id]
         );
       }
 
       // Commit the transaction
       await pool.query('COMMIT');
 
-      // Fetch the complete order with details
+      // Fetch the complete order with items
       const completeOrderResult = await pool.query(
         `SELECT o.*, 
          json_agg(json_build_object(
-           'id', od.id,
-           'product_id', od.product_id,
-           'quantity', od.quantity,
-           'quantity_unit', od.quantity_unit,
-           'unit_price', od.unit_price,
-           'name', od.name
+           'id', oi.id,
+           'product_id', oi.product_id,
+           'quantity', oi.quantity,
+           'quantity_unit', oi.quantity_unit,
+           'price_at_time', oi.price_at_time,
+           'product', (
+             SELECT json_build_object(
+               'id', p.id,
+               'name', p.name,
+               'image_url', p.image_url
+             )
+             FROM products p
+             WHERE p.id = oi.product_id
+           )
          )) as items
          FROM orders o
-         LEFT JOIN order_details od ON o.id = od.order_id
+         LEFT JOIN order_items oi ON o.id = oi.order_id
          WHERE o.id = $1
          GROUP BY o.id`,
         [orderId]
@@ -94,7 +112,10 @@ router.post('/', authenticateToken, async (req, res) => {
     }
   } catch (error) {
     console.error('Error creating order:', error);
-    res.status(500).json({ error: 'Failed to create order' });
+    res.status(500).json({
+      error: 'Failed to create order',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
 

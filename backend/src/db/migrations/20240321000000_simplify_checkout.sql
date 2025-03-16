@@ -1,6 +1,24 @@
 -- Drop existing order creation function
 DROP FUNCTION IF EXISTS create_order(UUID, JSONB, JSONB[], DECIMAL);
 
+-- Add quantity_unit column to order_items if it doesn't exist
+DO $$ 
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 
+    FROM information_schema.columns 
+    WHERE table_name = 'order_items' 
+    AND column_name = 'quantity_unit'
+  ) THEN
+    ALTER TABLE order_items
+    ADD COLUMN quantity_unit VARCHAR(10) NOT NULL DEFAULT '250g';
+
+    ALTER TABLE order_items
+    ADD CONSTRAINT chk_order_items_quantity_unit 
+    CHECK (quantity_unit IN ('250g', '500g', '1Kg'));
+  END IF;
+END $$;
+
 -- Create simplified order creation function
 CREATE OR REPLACE FUNCTION create_order(
   p_user_id UUID,
@@ -16,14 +34,15 @@ DECLARE
   v_item JSONB;
   v_product_stock INTEGER;
   v_required_quantity INTEGER;
+  v_product_name TEXT;
 BEGIN
   -- Start transaction
   BEGIN
     -- Validate stock for all items first
     FOR v_item IN SELECT * FROM unnest(p_items)
     LOOP
-      -- Get current stock
-      SELECT stock_quantity INTO v_product_stock
+      -- Get current stock and product name
+      SELECT stock_quantity, name INTO v_product_stock, v_product_name
       FROM products
       WHERE id = (v_item->>'product_id')::UUID
       FOR UPDATE;  -- Lock the row to prevent concurrent updates
@@ -37,8 +56,8 @@ BEGIN
 
       -- Check if enough stock is available
       IF v_product_stock < v_required_quantity THEN
-        RAISE EXCEPTION 'Insufficient stock for product %: have %, need %',
-          (v_item->>'product_id')::UUID, v_product_stock, v_required_quantity;
+        RAISE EXCEPTION 'Insufficient stock for product % (%): have %, need %',
+          v_product_name, (v_item->>'product_id')::UUID, v_product_stock, v_required_quantity;
       END IF;
     END LOOP;
 
@@ -54,7 +73,7 @@ BEGIN
       INSERT INTO order_items (
         order_id, 
         product_id, 
-        quantity, 
+        quantity,
         quantity_unit,
         price_at_time
       )
@@ -78,14 +97,19 @@ BEGIN
       SELECT id FROM shopping_cart WHERE user_id = p_user_id
     );
 
-    -- Commit transaction
+    -- Return success with order ID
     RETURN jsonb_build_object(
       'success', true,
       'order_id', v_order_id
     );
-  EXCEPTION WHEN OTHERS THEN
-    -- Rollback transaction on any error
-    RAISE;
+
+  EXCEPTION 
+    WHEN OTHERS THEN
+      -- Log the error details
+      RAISE NOTICE 'Error creating order: %', SQLERRM;
+      
+      -- Rollback transaction
+      RAISE;
   END;
 END;
 $$;
@@ -102,7 +126,8 @@ ALTER TABLE order_items
   ALTER COLUMN order_id SET NOT NULL,
   ALTER COLUMN product_id SET NOT NULL,
   ALTER COLUMN quantity SET NOT NULL,
-  ALTER COLUMN price_at_time SET NOT NULL;
+  ALTER COLUMN price_at_time SET NOT NULL,
+  ALTER COLUMN quantity_unit SET NOT NULL;
 
 -- Add constraints to ensure data integrity
 ALTER TABLE orders
@@ -178,6 +203,7 @@ BEGIN
           'id', oi.id,
           'product_id', oi.product_id,
           'quantity', oi.quantity,
+          'quantity_unit', oi.quantity_unit,
           'price_at_time', oi.price_at_time,
           'product', (
             SELECT jsonb_build_object(
