@@ -51,16 +51,12 @@ BEGIN
         user_id,
         shipping_address,
         total_amount,
-        status,
-        payment_status,
-        payment_method
+        status
     ) VALUES (
         p_user_id,
         p_shipping_address,
         p_total_amount,
-        'pending',
-        'pending',
-        'cod'
+        'pending'
     ) RETURNING id INTO v_order_id;
 
     -- Create order items
