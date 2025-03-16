@@ -54,6 +54,10 @@ const ProductDetail = () => {
     const fetchProduct = async () => {
       try {
         setLoading(true);
+        if (!productId) {
+          throw new Error('Product ID is required');
+        }
+        
         console.log('Fetching product with ID:', productId);
         const response = await fetch(`${API_BASE_URL}/api/products/${productId}`);
         console.log('API Response status:', response.status);
@@ -69,7 +73,11 @@ const ProductDetail = () => {
           throw new Error('No product data received');
         }
         
-        setProduct(data);
+        // Ensure the image URL is properly set
+        setProduct({
+          ...data,
+          image_url: data.image_url || data.image
+        });
       } catch (err) {
         console.error('Error fetching product:', err);
         setError(err.message);
@@ -78,9 +86,7 @@ const ProductDetail = () => {
       }
     };
 
-    if (productId) {
-      fetchProduct();
-    }
+    fetchProduct();
   }, [productId]);
   
   const calculatePrice = (unit: "250g" | "500g" | "1Kg") => {

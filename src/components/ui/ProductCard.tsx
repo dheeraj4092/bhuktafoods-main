@@ -155,9 +155,21 @@ const ProductCard = ({
     }
   };
 
+  const handleCardClick = (e: React.MouseEvent) => {
+    // Don't navigate if clicking on the add to cart button or quantity selector
+    if (
+      e.target instanceof Element && 
+      (e.target.closest('button') || 
+       e.target.closest('[role="combobox"]'))
+    ) {
+      e.preventDefault();
+    }
+  };
+
   return (
     <Link
       to={`/products/${id}`}
+      onClick={handleCardClick}
       className={cn(
         "group relative overflow-hidden rounded-2xl flex flex-col bg-white border border-border transition-all duration-300",
         "hover:shadow-lg hover:border-transparent transform hover:-translate-y-1",
@@ -237,7 +249,7 @@ const ProductCard = ({
       </div>
       
       {/* Content */}
-      <div className="p-3 sm:p-5 flex flex-col flex-grow">
+      <div className="p-3 sm:p-5 flex flex-col flex-grow" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-medium text-base sm:text-lg text-foreground">{name}</h3>
         <p className="mt-1 sm:mt-1.5 text-xs sm:text-sm text-muted-foreground line-clamp-2">{description}</p>
         
@@ -250,7 +262,7 @@ const ProductCard = ({
         
         {/* Price and Add Button */}
         <div className="mt-auto pt-3 sm:pt-4 space-y-2 sm:space-y-3">
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2" onClick={(e) => e.stopPropagation()}>
             <span className="font-medium text-sm sm:text-base">{formattedPrice}</span>
             <Select
               value={selectedQuantity}
@@ -267,7 +279,7 @@ const ProductCard = ({
             </Select>
           </div>
           
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between" onClick={(e) => e.stopPropagation()}>
             <span className="text-xs sm:text-sm text-muted-foreground">
               {selectedQuantity === "500g" && "2x price"}
               {selectedQuantity === "1Kg" && "4x price with 10% discount"}
