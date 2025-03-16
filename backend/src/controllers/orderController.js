@@ -66,10 +66,10 @@ export const createOrder = async (req, res) => {
     // Call the database function to create order
     const { data, error } = await supabase
       .rpc('create_order', {
-        p_user_id: userId,
-        p_shipping_address: JSON.stringify(shipping_address),
         p_items: items.map(item => JSON.stringify(item)),
-        p_total_amount: total_amount
+        p_shipping_address: JSON.stringify(shipping_address),
+        p_total_amount: total_amount,
+        p_user_id: userId
       });
 
     if (error) {
