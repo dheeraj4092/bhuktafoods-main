@@ -122,13 +122,32 @@ const Checkout = () => {
         },
         body: JSON.stringify(orderPayload),
       });
+
+      // Log full response details
+      console.log('Order response details:', {
+        status: orderResponse.status,
+        statusText: orderResponse.statusText,
+        headers: Object.fromEntries(orderResponse.headers.entries()),
+        url: orderResponse.url
+      });
   
       if (!orderResponse.ok) {
-        const errorData = await orderResponse.json();
+        const errorText = await orderResponse.text(); // Get raw response text first
+        console.error('Raw error response:', errorText);
+        
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+          errorData = { error: errorText };
+        }
+
         console.error('Order creation failed:', {
           status: orderResponse.status,
           statusText: orderResponse.statusText,
-          error: errorData
+          error: errorData,
+          requestPayload: orderPayload
         });
         
         // Handle specific error cases
@@ -142,15 +161,41 @@ const Checkout = () => {
           toast.error("You don't have permission to create orders. Please contact support.");
           return;
         }
+
+        if (orderResponse.status === 500) {
+          toast.error("Server error. Our team has been notified. Please try again later.");
+          // Log additional context for debugging
+          console.error('Server error context:', {
+            user: user?.id,
+            timestamp: new Date().toISOString(),
+            orderPayload,
+            errorData
+          });
+          return;
+        }
         
-        throw new Error(errorData.error || errorData.details || "Failed to create order");
+        throw new Error(
+          errorData.error || 
+          errorData.details || 
+          errorData.message || 
+          "Failed to create order"
+        );
       }
   
-      const data = await orderResponse.json();
+      let data;
+      try {
+        const responseText = await orderResponse.text();
+        console.log('Raw success response:', responseText);
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse success response:', parseError);
+        throw new Error("Invalid response format from server");
+      }
+
       console.log('Order created:', data);
       
       if (!data.order?.id) {
-        console.error('Invalid order response:', data);
+        console.error('Invalid order response structure:', data);
         throw new Error("Invalid order response from server");
       }
 
