@@ -32,7 +32,7 @@ const ProductsPage = () => {
       try {
         setLoading(true);
         console.log('Fetching products from API...');
-        const response = await fetch('http://localhost:5001/api/products');
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/products`);
         console.log('API Response status:', response.status);
         
         if (!response.ok) {
