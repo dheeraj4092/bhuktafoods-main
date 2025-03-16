@@ -7,6 +7,13 @@ export const createOrder = async (req, res) => {
     const userId = req.user.id;
     const { shipping_address, items, total_amount } = req.body;
 
+    console.log('Creating order with:', {
+      userId,
+      shipping_address,
+      items,
+      total_amount
+    });
+
     // Basic validation
     if (!shipping_address || !items || !total_amount) {
       return res.status(400).json({ 
@@ -49,17 +56,29 @@ export const createOrder = async (req, res) => {
       }
     }
 
+    console.log('Calling create_order RPC with:', {
+      p_user_id: userId,
+      p_shipping_address: shipping_address,
+      p_items: items,
+      p_total_amount: total_amount
+    });
+
     // Call the database function to create order
     const { data, error } = await supabase
       .rpc('create_order', {
         p_user_id: userId,
-        p_shipping_address: shipping_address,
-        p_items: items,
+        p_shipping_address: JSON.stringify(shipping_address),
+        p_items: items.map(item => JSON.stringify(item)),
         p_total_amount: total_amount
       });
 
     if (error) {
-      console.error('Order creation error:', error);
+      console.error('Order creation error:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
       
       // Handle specific error cases
       if (error.message?.includes('Insufficient stock')) {
@@ -85,16 +104,23 @@ export const createOrder = async (req, res) => {
 
       return res.status(500).json({ 
         error: 'Failed to create order',
-        details: 'An unexpected error occurred while processing your order. Please try again.'
+        details: error.message || 'An unexpected error occurred while processing your order. Please try again.'
       });
     }
+
+    console.log('Order created successfully:', data);
 
     // Get order details
     const { data: orderDetails, error: detailsError } = await supabase
       .rpc('get_order_details', { p_order_id: data.order_id });
 
     if (detailsError) {
-      console.error('Error fetching order details:', detailsError);
+      console.error('Error fetching order details:', {
+        message: detailsError.message,
+        details: detailsError.details,
+        hint: detailsError.hint,
+        code: detailsError.code
+      });
       // Don't fail the order creation if we can't fetch details
       return res.status(201).json({
         success: true,
@@ -121,10 +147,14 @@ export const createOrder = async (req, res) => {
       message: 'Order placed successfully'
     });
   } catch (error) {
-    console.error('Order creation error:', error);
+    console.error('Unexpected error in createOrder:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     res.status(500).json({ 
-      error: 'Server error',
-      details: 'An unexpected error occurred while processing your order. Please try again later.'
+      error: 'Failed to create order',
+      details: error.message || 'An unexpected error occurred'
     });
   }
 };
