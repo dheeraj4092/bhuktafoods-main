@@ -4,162 +4,110 @@ import { sendOrderConfirmationEmail, sendAdminNotificationEmail } from '../servi
 // Create order
 export const createOrder = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { shipping_address, items, total_amount } = req.body;
+    console.log('Creating order with payload:', req.body);
+    console.log('Authenticated user:', req.user);
 
-    console.log('Creating order with:', {
-      userId,
-      shipping_address,
-      items,
-      total_amount
-    });
-
-    // Basic validation
-    if (!shipping_address || !items || !total_amount) {
-      return res.status(400).json({ 
-        error: 'Missing required fields',
-        details: 'shipping_address, items, and total_amount are required'
-      });
+    const { items, shipping_address, total_amount } = req.body;
+    
+    // Validate required fields
+    if (!items || !Array.isArray(items)) {
+      throw new Error('Items array is required');
+    }
+    if (!shipping_address) {
+      throw new Error('Shipping address is required');
+    }
+    if (!total_amount) {
+      throw new Error('Total amount is required');
     }
 
-    // Validate items array
-    if (!Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ 
-        error: 'Invalid items',
-        details: 'Items must be a non-empty array'
+    // Create order
+    const { data: order, error: orderError } = await supabase
+      .from('orders')
+      .insert({
+        user_id: req.user.id,
+        shipping_address,
+        total_amount: parseFloat(total_amount),
+        status: 'processing'
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error('Error creating order:', {
+        error: orderError,
+        user: req.user.id,
+        payload: req.body
       });
+      throw orderError;
     }
 
-    // Validate each item has required fields
-    for (const item of items) {
-      if (!item.product_id || !item.quantity || !item.quantity_unit || !item.unit_price) {
-        return res.status(400).json({ 
-          error: 'Invalid item format',
-          details: `Each item must have product_id, quantity, quantity_unit, and unit_price. Missing fields in item: ${JSON.stringify(item)}`
-        });
-      }
+    console.log('Order created:', order);
 
-      // Validate quantity_unit
-      if (!['250g', '500g', '1Kg'].includes(item.quantity_unit)) {
-        return res.status(400).json({ 
-          error: 'Invalid quantity_unit',
-          details: `Quantity unit must be one of: 250g, 500g, 1Kg. Got: ${item.quantity_unit}`
-        });
-      }
+    // Create order items
+    const orderItems = items.map(item => ({
+      order_id: order.id,
+      product_id: item.product_id,
+      quantity: parseInt(item.quantity),
+      quantity_unit: item.quantity_unit || '250g',
+      price_at_time: parseFloat(item.unit_price)
+    }));
 
-      // Validate quantity is positive
-      if (item.quantity <= 0) {
-        return res.status(400).json({
-          error: 'Invalid quantity',
-          details: `Quantity must be greater than 0. Got: ${item.quantity} for product ${item.product_id}`
-        });
-      }
+    const { error: itemsError } = await supabase
+      .from('order_items')
+      .insert(orderItems);
+
+    if (itemsError) {
+      console.error('Error creating order items:', {
+        error: itemsError,
+        items: orderItems
+      });
+      throw itemsError;
     }
 
-    console.log('Calling create_order RPC with:', {
-      p_user_id: userId,
-      p_shipping_address: shipping_address,
-      p_items: items,
-      p_total_amount: total_amount
-    });
-
-    // Call the database function to create order
-    const { data, error } = await supabase
-      .rpc('create_order', {
-        p_user_id: userId,
-        p_shipping_address: JSON.stringify(shipping_address),
-        p_items: items.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          quantity_unit: item.quantity_unit,
-          unit_price: item.unit_price
-        })),
-        p_total_amount: total_amount
-      });
-
-    if (error) {
-      console.error('Order creation error:', {
-        message: error.message,
-        details: error.details,
-        hint: error.hint,
-        code: error.code
-      });
-      
-      // Handle specific error cases
-      if (error.message?.includes('Insufficient stock')) {
-        return res.status(400).json({ 
-          error: 'Insufficient stock',
-          details: error.message
-        });
-      }
-      
-      if (error.message?.includes('Product not found')) {
-        return res.status(400).json({ 
-          error: 'Product not found',
-          details: error.message
-        });
-      }
-
-      if (error.message?.includes('quantity_unit')) {
-        return res.status(400).json({ 
-          error: 'Invalid quantity unit',
-          details: 'Please ensure all items have a valid quantity unit (250g, 500g, or 1Kg)'
-        });
-      }
-
-      return res.status(500).json({ 
-        error: 'Failed to create order',
-        details: error.message || 'An unexpected error occurred while processing your order. Please try again.'
-      });
-    }
-
-    console.log('Order created successfully:', data);
-
-    // Get order details
+    // Get the complete order details
     const { data: orderDetails, error: detailsError } = await supabase
-      .rpc('get_order_details', { p_order_id: data.order_id });
+      .from('orders')
+      .select(`
+        *,
+        order_items (
+          id,
+          quantity,
+          quantity_unit,
+          price_at_time,
+          products (
+            id,
+            name,
+            image_url
+          )
+        )
+      `)
+      .eq('id', order.id)
+      .single();
 
     if (detailsError) {
-      console.error('Error fetching order details:', {
-        message: detailsError.message,
-        details: detailsError.details,
-        hint: detailsError.hint,
-        code: detailsError.code
-      });
-      // Don't fail the order creation if we can't fetch details
-      return res.status(201).json({
-        success: true,
-        order: { id: data.order_id },
-        message: 'Order placed successfully'
-      });
+      console.error('Error fetching order details:', detailsError);
+      throw detailsError;
     }
 
-    // Send email notifications
-    try {
-      // Send confirmation email to customer
-      await sendOrderConfirmationEmail(orderDetails, shipping_address.email);
-      
-      // Send notification email to admin
-      await sendAdminNotificationEmail(orderDetails);
-    } catch (emailError) {
-      console.error('Error sending email notifications:', emailError);
-      // Don't fail the order creation if email sending fails
-    }
+    // Send emails asynchronously
+    Promise.all([
+      sendOrderConfirmationEmail(orderDetails, shipping_address.email),
+      sendAdminNotificationEmail(orderDetails)
+    ]).catch(error => {
+      console.error('Error sending order emails:', error);
+    });
 
+    // Return success response
     res.status(201).json({
-      success: true,
-      order: orderDetails,
-      message: 'Order placed successfully'
+      message: 'Order created successfully',
+      order: orderDetails
     });
   } catch (error) {
-    console.error('Unexpected error in createOrder:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
+    console.error('Error in createOrder:', error);
     res.status(500).json({ 
-      error: 'Failed to create order',
-      details: error.message || 'An unexpected error occurred'
+      error: 'Failed to create order', 
+      details: error.message,
+      code: error.code 
     });
   }
 };

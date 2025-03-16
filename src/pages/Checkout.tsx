@@ -76,21 +76,20 @@ const Checkout = () => {
     try {
       // Prepare the order payload
       const orderPayload = {
-        total_amount: totalPrice,
         items: items.map(item => ({
           product_id: item.productId,
-          quantity: item.quantity,
-          quantity_unit: item.quantityUnit,
-          unit_price: item.basePrice,
-          name: item.name
+          quantity: parseInt(item.quantity.toString()),
+          quantity_unit: item.quantityUnit || '250g',
+          unit_price: parseFloat(item.basePrice.toString())
         })),
         shipping_address: {
           name: formData.name,
           email: formData.email,
           address: formData.address,
           city: formData.city,
-          zip_code: formData.zipCode,
-        }
+          zip_code: formData.zipCode
+        },
+        total_amount: parseFloat(totalPrice.toString())
       };
   
       // Send the order to the backend
@@ -110,9 +109,7 @@ const Checkout = () => {
       }
   
       const data = await orderResponse.json();
-      console.log('Order response:', data);
-      console.log('Order details:', data.order);
-      console.log('Total amount:', data.order.total_amount);
+      console.log('Order created:', data);
       
       if (!data.order?.id) {
         console.error('Invalid order response:', data);
@@ -122,16 +119,21 @@ const Checkout = () => {
       clearCart();
       toast.success(data.message || "Order placed successfully!");
       
+      // Navigate to success page with order details
       const orderState = {
         orderId: data.order.id,
         orderTotal: data.order.total_amount,
-        items: data.order.items,
+        items: data.order.order_items.map(item => ({
+          productId: item.product_id,
+          name: item.products.name,
+          quantity: item.quantity,
+          quantity_unit: item.quantity_unit,
+          price: item.price_at_time,
+          price_at_time: item.price_at_time
+        })),
         shippingAddress: data.order.shipping_address
       };
-      
-      console.log('Navigating to order success with state:', orderState);
-      
-      // Navigate to success page with order details
+
       navigate(`/order-success?orderId=${data.order.id}`, { 
         state: orderState
       });
