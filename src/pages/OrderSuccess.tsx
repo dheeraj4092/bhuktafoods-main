@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckCircle2, Package, MapPin, CreditCard, Copy, Calendar, ShoppingBag, AlertCircle } from "lucide-react";
+import { CheckCircle2, Package, MapPin, CreditCard, Copy, Calendar, ShoppingBag, AlertCircle, MessageCircle } from "lucide-react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useEffect, useState } from "react";
@@ -24,6 +24,7 @@ interface OrderSuccessState {
     address: string;
     city: string;
     zipCode: string;
+    phone_number: string;
   };
 }
 
@@ -95,6 +96,54 @@ const OrderSuccess = () => {
     }
   };
 
+  const formatWhatsAppMessage = () => {
+    if (!orderDetails) return "";
+    
+    const message = `🙏 *Welcome to Bhukta Foods!*
+---------------------------
+We're excited to confirm your order:
+
+📦 *Order Details*
+Order ID: ${orderDetails.orderId}
+Date: ${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+
+🛍️ *Your Items:*
+${orderDetails.items.map(item => 
+  `• ${item.name}
+   Quantity: ${item.quantity} ${item.quantity_unit}
+   Price: ₹${(item.price_at_time * item.quantity).toFixed(2)}`
+).join('\n\n')}
+
+💰 *Payment Summary*
+Total Amount: ₹${orderDetails.orderTotal.toFixed(2)}
+
+📍 *Delivery Information*
+${orderDetails.shippingAddress.name}
+${orderDetails.shippingAddress.address}
+${orderDetails.shippingAddress.city}, ${orderDetails.shippingAddress.zipCode}
+
+💳 *Payment Instructions*
+• We will process your payment through this WhatsApp chat
+• Our team will guide you through the payment process
+• You'll receive payment confirmation instantly
+
+Need help? Feel free to ask any questions!
+
+Thank you for choosing Bhukta Foods! We're preparing your delicious order with care. 🌟`;
+
+    return encodeURIComponent(message);
+  };
+
+  const handleWhatsAppRedirect = () => {
+    const ADMIN_PHONE = "6300081285"; // Replace with your actual WhatsApp business number
+    const message = formatWhatsAppMessage();
+    const whatsappUrl = `https://wa.me/${ADMIN_PHONE}?text=${message}`;
+    
+    toast.success("Redirecting to WhatsApp...");
+    // Open WhatsApp in a new tab
+    window.open(whatsappUrl, '_blank');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -160,6 +209,19 @@ const OrderSuccess = () => {
               <p className="text-center text-muted-foreground">
                 Thank you for your order. We'll send you an email with your order details shortly.
               </p>
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <p className="text-blue-700 font-medium mb-2">Payment Instructions</p>
+                <p className="text-blue-600 mb-4">
+                  We will contact you shortly on WhatsApp at {orderDetails?.shippingAddress.phone_number} for payment details and to confirm your order.
+                </p>
+                <Button 
+                  className="w-full bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2"
+                  onClick={handleWhatsAppRedirect}
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  Continue to WhatsApp Payment
+                </Button>
+              </div>
               <div className="flex flex-col gap-4">
                 <Button asChild className="w-full">
                   <Link to="/orders">View Orders</Link>

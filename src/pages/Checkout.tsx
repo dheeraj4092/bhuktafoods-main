@@ -24,6 +24,7 @@ const Checkout = () => {
     address: "",
     city: "",
     zipCode: "",
+    phoneNumber: "",
   });
 
   // Redirect if cart is empty
@@ -53,6 +54,16 @@ const Checkout = () => {
     }
     if (!formData.zipCode.trim()) {
       toast.error("Please enter your ZIP code");
+      return false;
+    }
+    if (!formData.phoneNumber.trim()) {
+      toast.error("Please enter your phone number");
+      return false;
+    }
+    // Basic phone number validation
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.phoneNumber.trim())) {
+      toast.error("Please enter a valid 10-digit phone number");
       return false;
     }
     return true;
@@ -101,7 +112,8 @@ const Checkout = () => {
           email: formData.email,
           address: formData.address,
           city: formData.city,
-          zip_code: formData.zipCode
+          zip_code: formData.zipCode,
+          phone_number: formData.phoneNumber
         },
         total_amount: parseFloat(totalPrice.toString())
       };
@@ -302,6 +314,18 @@ const Checkout = () => {
                         value={formData.email}
                         onChange={handleChange}
                         placeholder="Enter your email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNumber">Phone Number</Label>
+                      <Input
+                        id="phoneNumber"
+                        name="phoneNumber"
+                        type="tel"
+                        value={formData.phoneNumber}
+                        onChange={handleChange}
+                        placeholder="Enter your 10-digit phone number"
+                        maxLength={10}
                       />
                     </div>
                     <div className="space-y-2">
