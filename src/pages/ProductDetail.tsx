@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Clock, Truck, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Clock, Truck, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
@@ -8,6 +8,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import FloatingCart from "@/components/ui/FloatingCart";
 import { useCart } from "@/context/CartContext";
+import defaultProductImage from '@/assets/default-product.svg';
 import {
   Select,
   SelectContent,
@@ -15,8 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const DEFAULT_IMAGE = defaultProductImage;
 
 const ProductDetail = () => {
   const { productId } = useParams();
@@ -25,7 +29,26 @@ const ProductDetail = () => {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isImageLoaded, setIsImageLoaded] = useState(false);
   const { addItem } = useCart();
+
+  const getImageUrl = (imagePath: string | undefined) => {
+    if (!imagePath) {
+      return DEFAULT_IMAGE;
+    }
+    
+    if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
+      return imagePath;
+    }
+    
+    try {
+      const cleanPath = imagePath.replace(/^\/+/, '').trim();
+      return `${SUPABASE_URL}/storage/v1/object/public/product-images/${cleanPath}`;
+    } catch (error) {
+      console.error('Error constructing image URL:', error);
+      return DEFAULT_IMAGE;
+    }
+  };
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -145,14 +168,35 @@ const ProductDetail = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">
-              <img
-                src={product.image_url}
-                alt={product.name}
-                className="w-full aspect-square object-cover rounded-lg"
-              />
+              <div className="relative aspect-square overflow-hidden rounded-lg">
+                {!isImageLoaded && (
+                  <div className="absolute inset-0 bg-secondary flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                )}
+                <img
+                  src={getImageUrl(product.image_url || product.image)}
+                  alt={product.name}
+                  className={cn(
+                    "w-full h-full object-cover transition-opacity duration-300",
+                    !isImageLoaded && "opacity-0",
+                    isImageLoaded && "opacity-100"
+                  )}
+                  onLoad={() => setIsImageLoaded(true)}
+                  onError={(e) => {
+                    console.error('Error loading image:', {
+                      url: product.image_url || product.image,
+                      originalPath: product.image_url || product.image
+                    });
+                    const img = e.target as HTMLImageElement;
+                    img.src = DEFAULT_IMAGE;
+                    setIsImageLoaded(true);
+                  }}
+                />
+              </div>
               <div className="grid grid-cols-3 gap-4">
                 <img
-                  src={product.image_url}
+                  src={getImageUrl(product.image_url || product.image)}
                   alt={product.name}
                   className="w-full aspect-square object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                 />

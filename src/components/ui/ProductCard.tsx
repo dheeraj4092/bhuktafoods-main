@@ -58,23 +58,19 @@ const ProductCard = ({
   // Function to get the full image URL
   const getImageUrl = (imagePath: string | undefined) => {
     if (!imagePath) {
-      console.log('No image path provided, using default image');
       return DEFAULT_IMAGE;
     }
     
-    // If it's already a full URL (including Supabase storage URLs), use it directly
+    // If it's already a full URL, use it directly
     if (imagePath.startsWith('http') || imagePath.startsWith('https')) {
-      console.log('Using direct URL:', imagePath);
       return imagePath;
     }
     
-    // If it's a relative path, construct the full Supabase URL
+    // Construct the Supabase storage URL
     try {
-      // Remove any leading slashes and 'products/' from the path
-      const cleanPath = imagePath.replace(/^\/*(products\/)*/, '');
-      const url = `${SUPABASE_URL}/storage/v1/object/public/product-images/${cleanPath}`;
-      console.log('Generated Supabase URL:', url);
-      return url;
+      // Clean the path and ensure proper format
+      const cleanPath = imagePath.replace(/^\/+/, '').trim();
+      return `${SUPABASE_URL}/storage/v1/object/public/product-images/${cleanPath}`;
     } catch (error) {
       console.error('Error constructing image URL:', error);
       return DEFAULT_IMAGE;
@@ -160,7 +156,8 @@ const ProductCard = ({
   };
 
   return (
-    <div
+    <Link
+      to={`/products/${id}`}
       className={cn(
         "group relative overflow-hidden rounded-2xl flex flex-col bg-white border border-border transition-all duration-300",
         "hover:shadow-lg hover:border-transparent transform hover:-translate-y-1",
@@ -225,16 +222,13 @@ const ProductCard = ({
             isImageLoaded && "opacity-100"
           )}
           onLoad={() => {
-            console.log('Image loaded successfully:', imageUrl);
             setIsImageLoaded(true);
           }}
           onError={(e) => {
             console.error('Error loading image:', {
               url: imageUrl,
-              error: e,
               originalPath: image_url || image
             });
-            // If the image fails to load, use the default image
             const img = e.target as HTMLImageElement;
             img.src = DEFAULT_IMAGE;
             setIsImageLoaded(true);
@@ -302,7 +296,7 @@ const ProductCard = ({
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 };
 
