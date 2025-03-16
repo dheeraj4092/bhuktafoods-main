@@ -16,21 +16,47 @@ import Checkout from "@/pages/Checkout";
 import Subscription from "@/pages/Subscription";
 import OrderSuccess from "@/pages/OrderSuccess";
 import OrderHistory from "@/pages/OrderHistory";
-import { ErrorBoundary } from "react-error-boundary";
+import { Component, ErrorInfo, ReactNode } from 'react';
 
 const queryClient = new QueryClient();
 
-function ErrorFallback({ error }: { error: Error }) {
-  return (
-    <div role="alert" className="p-4">
-      <h2 className="text-2xl font-bold text-red-600">Something went wrong:</h2>
-      <pre className="mt-2 text-sm text-red-500">{error.message}</pre>
-    </div>
-  );
+class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(_: Error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Error caught by boundary:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
+            <button
+              className="px-4 py-2 bg-blue-500 text-white rounded"
+              onClick={() => window.location.reload()}
+            >
+              Reload page
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
 }
 
 const App = () => (
-  <ErrorBoundary FallbackComponent={ErrorFallback}>
+  <ErrorBoundary>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
