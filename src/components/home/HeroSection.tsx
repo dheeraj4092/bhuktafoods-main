@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
+import { FlipWords } from "@/components/ui/flip-words";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 
 const HeroSection = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -15,6 +17,8 @@ const HeroSection = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  const words = ["goodness", "delights", "treats", "flavors", "traditions"];
+
   return (
     <section className="pt-32 pb-20 px-6 lg:px-10 relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -24,17 +28,23 @@ const HeroSection = () => {
               Authentic & Fresh
             </span>
             <h1 className="text-6xl font-medium leading-tight">
-              Homemade goodness, <br /> delivered to your door
+              Homemade{" "}
+              <FlipWords words={words} className="text-food-fresh"/>{" "}
+              <br /> delivered to your door
             </h1>
             <p className="text-lg max-w-xl">
               Traditional snacks and fresh healthy meals prepared with love, delivered across India and worldwide.
             </p>
             <div className="flex items-center gap-4 pt-4">
-              <Button asChild size="lg" className="px-6 font-medium rounded-full">
-                <Link to="/products">
-                  View All Products <ArrowRight size={16} className="ml-2" />
-                </Link>
-              </Button>
+              <Link to="/products">
+                <HoverBorderGradient
+                  containerClassName="rounded-full"
+                  className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2 px-6 py-2"
+                >
+                  <span>View All Products</span>
+                  <ArrowRight size={16} />
+                </HoverBorderGradient>
+              </Link>
             </div>
           </div>
           <div className={`w-1/2 relative ${isLoaded ? 'animate-fade-in animate-delay-300' : 'opacity-0'}`}>
@@ -42,20 +52,6 @@ const HeroSection = () => {
               <img 
                 src="https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//logo.png" 
                 alt="Traditional Indian Snack" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="absolute -bottom-6 -left-6 w-32 h-32 rounded-2xl overflow-hidden shadow-xl transform -rotate-6 animate-float">
-              <img 
-                src="https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//indian-old-woman-making-cooking-260nw-2197321177.webp" 
-                alt="Fresh fruits" 
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="absolute -top-6 -right-6 w-32 h-32 rounded-2xl overflow-hidden shadow-xl transform rotate-12 animate-float animate-delay-500">
-              <img 
-                src="https://images.unsplash.com/photo-1570696516188-ade861b84a49?q=80&w=2940&auto=format&fit=crop" 
-                alt="Healthy breakfast" 
                 className="w-full h-full object-cover"
               />
             </div>

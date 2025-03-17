@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 
 const Cart = () => {
   const { items, removeItem, updateQuantity, totalPrice } = useCart();
@@ -58,9 +59,14 @@ const Cart = () => {
                   <h2 className="text-xl font-medium mb-2">Your cart is empty</h2>
                   <p className="text-muted-foreground">Add some delicious items to your cart!</p>
                 </div>
-                <Button asChild size="lg" className="w-full">
-                  <Link to="/products">Continue Shopping</Link>
-                </Button>
+                <Link to="/products">
+                  <HoverBorderGradient
+                    containerClassName="rounded-full"
+                    className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2 px-6 py-2"
+                  >
+                    <span>Continue Shopping</span>
+                  </HoverBorderGradient>
+                </Link>
               </div>
             </CardContent>
           </Card>
@@ -174,9 +180,14 @@ const Cart = () => {
                       <span>Total</span>
                       <span className="text-lg">₹{totalPrice.toFixed(2)}</span>
                     </div>
-                    <Button asChild size="lg" className="w-full">
-                      <Link to="/checkout">Proceed to Checkout</Link>
-                    </Button>
+                    <Link to="/checkout">
+                      <HoverBorderGradient
+                        containerClassName="rounded-full w-full"
+                        className="dark:bg-black bg-white text-black dark:text-white flex items-center justify-center space-x-2 px-6 py-2"
+                      >
+                        <span>Proceed to Checkout</span>
+                      </HoverBorderGradient>
+                    </Link>
                   </div>
                 </CardContent>
               </Card>

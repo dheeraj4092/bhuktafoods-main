@@ -10,6 +10,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -360,16 +361,31 @@ const Checkout = () => {
                         />
                       </div>
                     </div>
-                    <Button type="submit" size="lg" className="w-full" disabled={isProcessing}>
-                      {isProcessing ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        "Place Order"
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-4">
+                      <Link to="/cart">
+                        <HoverBorderGradient
+                          containerClassName="rounded-full"
+                          className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2 px-6 py-2"
+                        >
+                          <span>Back to Cart</span>
+                        </HoverBorderGradient>
+                      </Link>
+                      <HoverBorderGradient
+                        containerClassName="rounded-full"
+                        className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2 px-6 py-2"
+                        onClick={handleSubmit}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Processing...</span>
+                          </>
+                        ) : (
+                          <span>Place Order</span>
+                        )}
+                      </HoverBorderGradient>
+                    </div>
                   </form>
                 </CardContent>
               </Card>

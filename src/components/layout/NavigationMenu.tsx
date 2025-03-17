@@ -89,23 +89,23 @@ const NavigationMenuComponent = () => {
           <Menu className="h-6 w-6" />
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-[300px] sm:w-[400px]">
-        <nav className="flex flex-col gap-4">
+      <SheetContent side="left" className="w-[280px] sm:w-[320px] p-4">
+        <nav className="flex flex-col gap-3">
           <Link 
             to="/" 
-            className="text-lg font-medium hover:text-primary transition-colors"
+            className="text-base font-medium hover:text-primary transition-colors"
             onClick={() => setIsOpen(false)}
           >
             Home
           </Link>
           <div className="flex flex-col gap-2">
-            <p className="text-lg font-medium">Products</p>
-            <div className="grid gap-2 pl-4">
+            <p className="text-base font-medium">Products</p>
+            <div className="grid gap-1.5 pl-3">
               {categories.map((category) => (
                 <Link
                   key={category.href}
                   to={category.href}
-                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors"
+                  className="flex items-center gap-2 text-sm hover:text-primary transition-colors py-1"
                   onClick={() => setIsOpen(false)}
                 >
                   <category.icon className={cn("h-4 w-4", category.color)} />
@@ -116,7 +116,7 @@ const NavigationMenuComponent = () => {
           </div>
           <Link 
             to="/subscription" 
-            className="text-lg font-medium hover:text-primary transition-colors"
+            className="text-base font-medium hover:text-primary transition-colors"
             onClick={() => setIsOpen(false)}
           >
             Subscriptions
@@ -127,7 +127,7 @@ const NavigationMenuComponent = () => {
   );
 
   const DesktopNav = () => (
-    <NavigationMenuList className="hidden md:flex gap-6">
+    <NavigationMenuList className="hidden md:flex gap-4 lg:gap-6">
       <NavigationMenuItem>
         <Link 
           to="/" 
@@ -140,24 +140,24 @@ const NavigationMenuComponent = () => {
       <NavigationMenuItem>
         <NavigationMenuTrigger className="text-sm font-medium">Products</NavigationMenuTrigger>
         <NavigationMenuContent>
-          <ul className="grid w-[400px] gap-1 p-4">
+          <ul className="grid w-[360px] gap-1 p-3">
             {categories.map((category) => (
               <li key={category.href}>
                 <NavigationMenuLink asChild>
                   <Link
                     to={category.href}
                     className={cn(
-                      "block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none",
+                      "block select-none space-y-1 rounded-md p-2.5 leading-none no-underline outline-none",
                       "transition-colors hover:bg-accent hover:text-accent-foreground",
                       "focus:bg-accent focus:text-accent-foreground",
                       "group"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <category.icon className={cn("h-5 w-5", category.color)} />
+                    <div className="flex items-center gap-2.5">
+                      <category.icon className={cn("h-4 w-4", category.color)} />
                       <div>
                         <div className="text-sm font-medium leading-none">{category.title}</div>
-                        <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
+                        <p className="line-clamp-2 text-xs leading-snug text-muted-foreground mt-0.5">
                           {category.description}
                         </p>
                       </div>

@@ -32,13 +32,13 @@ const Header = () => {
       )}
     >
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 md:gap-8">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
             <NavigationMenuComponent />
             
             <Link 
               to="/" 
-              className="text-lg md:text-xl font-semibold tracking-tight flex items-center transform transition-transform hover:scale-[1.02]"
+              className="text-base sm:text-lg md:text-xl font-semibold tracking-tight flex items-center transform transition-transform hover:scale-[1.02]"
             >
               <span className="bg-gradient-to-r from-food-accent to-primary bg-clip-text text-transparent">
                 Bhukta Foods
@@ -46,42 +46,42 @@ const Header = () => {
             </Link>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-3">
+          <div className="flex items-center gap-1 sm:gap-2">
             {user ? (
               <>
                 <Link 
                   to="/profile" 
-                  className="p-1.5 sm:p-2 rounded-full hover:bg-secondary/50 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors"
                   title="Profile"
                 >
-                  <User size={20} className="text-muted-foreground hover:text-primary transition-colors" />
+                  <User size={18} className="text-muted-foreground hover:text-primary transition-colors" />
                 </Link>
                 <Link 
                   to="/orders" 
-                  className="p-1.5 sm:p-2 rounded-full hover:bg-secondary/50 transition-colors"
+                  className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors"
                   title="Orders"
                 >
-                  <Package size={20} className="text-muted-foreground hover:text-primary transition-colors" />
+                  <Package size={18} className="text-muted-foreground hover:text-primary transition-colors" />
                 </Link>
               </>
             ) : (
               <Link 
                 to="/auth" 
-                className="p-1.5 sm:p-2 rounded-full hover:bg-secondary/50 transition-colors"
+                className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors"
                 title="Login"
               >
-                <LogIn size={20} className="text-muted-foreground hover:text-primary transition-colors" />
+                <LogIn size={18} className="text-muted-foreground hover:text-primary transition-colors" />
               </Link>
             )}
             
             <Link 
               to="/cart" 
-              className="p-1.5 sm:p-2 rounded-full hover:bg-secondary/50 transition-colors relative"
+              className="p-1.5 rounded-full hover:bg-secondary/50 transition-colors relative"
               title="Cart"
             >
-              <ShoppingCart size={20} className="text-muted-foreground hover:text-primary transition-colors" />
+              <ShoppingCart size={18} className="text-muted-foreground hover:text-primary transition-colors" />
               {itemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-food-accent text-white text-xs font-medium rounded-full w-5 h-5 flex items-center justify-center animate-scale-in">
+                <span className="absolute -top-1 -right-1 bg-food-accent text-white text-xs font-medium rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center animate-scale-in">
                   {itemCount}
                 </span>
               )}

@@ -10,6 +10,7 @@ import FloatingCart from "@/components/ui/FloatingCart";
 import { useCart } from "@/context/CartContext";
 import { getProductImageUrl, DEFAULT_PRODUCT_IMAGE } from "@/lib/image-utils";
 import { cn } from "@/lib/utils";
+import { HoverBorderGradient } from "@/components/ui/hover-border-gradient";
 import {
   Select,
   SelectContent,
@@ -127,9 +128,14 @@ const ProductDetail = () => {
             <AlertTriangle className="w-12 h-12 text-destructive mx-auto mb-4" />
             <h2 className="text-xl font-medium mb-2">Error Loading Product</h2>
             <p className="text-muted-foreground mb-4">{error || "Product not found"}</p>
-            <Button asChild>
-              <Link to="/products">Back to Products</Link>
-            </Button>
+            <Link to="/products">
+              <HoverBorderGradient
+                containerClassName="rounded-full"
+                className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2 px-6 py-2"
+              >
+                <span>Back to Products</span>
+              </HoverBorderGradient>
+            </Link>
           </div>
         </main>
         <Footer />
@@ -144,12 +150,15 @@ const ProductDetail = () => {
       <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
-          <Button asChild variant="ghost" className="mb-8">
-            <Link to="/products">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Products
-            </Link>
-          </Button>
+          <Link to="/products">
+            <HoverBorderGradient
+              containerClassName="rounded-full"
+              className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2 px-6 py-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back to Products</span>
+            </HoverBorderGradient>
+          </Link>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div className="space-y-4">
@@ -263,13 +272,13 @@ const ProductDetail = () => {
                     {selectedQuantity === "1Kg" && "4x price with 10% discount"}
                   </div>
                   
-                  <Button 
-                    onClick={handleAddToCart} 
-                    size="lg" 
-                    className="w-full"
+                  <HoverBorderGradient
+                    containerClassName="rounded-full"
+                    className="dark:bg-black bg-white text-black dark:text-white flex items-center space-x-2 px-6 py-2"
+                    onClick={handleAddToCart}
                   >
-                    Add to Cart - ₹{calculatePrice(selectedQuantity).toFixed(2)}
-                  </Button>
+                    <span>Add to Cart</span>
+                  </HoverBorderGradient>
                 </div>
               )}
             </div>
