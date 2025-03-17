@@ -17,7 +17,6 @@ import FloatingCart from "@/components/ui/FloatingCart";
 import ProductCard from "@/components/ui/ProductCard";
 import PincodeCheck from "@/components/ui/PincodeCheck";
 import { cn } from "@/lib/utils";
-import CardHoverEffectDemo from "@/components/card-hover-effect-demo";
 
 const ProductsPage = () => {
   const location = useLocation();
@@ -251,44 +250,59 @@ const ProductsPage = () => {
           </p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Mobile filter dialog */}
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="lg:hidden w-full sm:w-auto">
-                <SlidersHorizontal className="h-4 w-4 mr-2" />
-                Filters
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:w-[400px] p-0">
-              <div className="h-full flex flex-col">
-                <div className="p-6 border-b">
-                  <SheetTitle>Filters</SheetTitle>
-                </div>
-                <div className="flex-1 overflow-y-auto p-6">
-                  <FilterSection isMobile={true} />
-                </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-
-          {/* Desktop filters */}
+        {/* Filters and Products Grid */}
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Desktop Filters */}
           <div className="hidden lg:block w-64 flex-shrink-0">
-            <div className="sticky top-6">
-              <FilterSection />
-            </div>
+            <FilterSection />
           </div>
 
-          {/* Products grid */}
+          {/* Mobile Filters */}
+          <div className="lg:hidden">
+            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <SlidersHorizontal className="mr-2 h-4 w-4" />
+                  Filters
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-full sm:w-[300px]">
+                <SheetHeader>
+                  <SheetTitle>Filters</SheetTitle>
+                </SheetHeader>
+                <FilterSection isMobile />
+              </SheetContent>
+            </Sheet>
+          </div>
+
+          {/* Products Grid */}
           <div className="flex-1">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              <CardHoverEffectDemo />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map((product) => (
+                <ProductCard
+                  key={product.id}
+                  id={product.id}
+                  name={product.name}
+                  description={product.description}
+                  price={product.price}
+                  image={product.image}
+                  image_url={product.image_url}
+                  category={product.category}
+                  isAvailable={product.stock_quantity > 0}
+                  isPreOrder={product.stock_quantity === 0}
+                  deliveryEstimate={product.delivery_estimate}
+                />
+              ))}
             </div>
           </div>
         </div>
       </main>
       <Footer />
       <FloatingCart />
+      <PincodeCheck
+        onDeliveryAvailable={handleDeliveryAvailable}
+        onDeliveryUnavailable={handleDeliveryUnavailable}
+      />
     </div>
   );
 };
