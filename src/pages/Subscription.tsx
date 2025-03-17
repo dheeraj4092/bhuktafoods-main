@@ -5,10 +5,9 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Check, X, Loader2, ChevronDown } from "lucide-react";
+import { Check, X, Loader2, ChevronDown, LayoutGrid, Table } from "lucide-react";
 import { toast } from "sonner";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -36,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import PincodeCheck from "@/components/ui/PincodeCheck";
+import FloatingCart from "@/components/ui/FloatingCart";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
@@ -452,391 +452,190 @@ const Subscription = () => {
     toast.error("Delivery is not available in your area. Please check back later or contact support.");
   };
 
-  const renderSubscriptionCards = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {subscriptions.map((subscription) => (
-        <Card 
-          key={subscription.id}
-          className={cn(
-            "cursor-pointer hover:shadow-lg transition-shadow",
-            userSubscription?.subscription.id === subscription.id && "border-primary"
-          )}
-          onClick={() => setSelectedSubscription(subscription)}
-        >
-          <CardHeader>
-            {subscription.image_url && (
-              <div className="aspect-video rounded-lg overflow-hidden mb-4">
-                <img
-                  src={subscription.image_url}
-                  alt={subscription.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <CardTitle>{subscription.name}</CardTitle>
-            <CardDescription>{subscription.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-bold">${subscription.price}</span>
-                <Badge variant="secondary">{subscription.duration_days} days</Badge>
-              </div>
-              <div className="space-y-2">
-                {subscription.features.slice(0, 3).map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">{feature}</span>
-                  </div>
-                ))}
-                {subscription.features.length > 3 && (
-                  <span className="text-sm text-muted-foreground">
-                    +{subscription.features.length - 3} more features
-                  </span>
-                )}
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              className="w-full"
-              variant={userSubscription?.subscription.id === subscription.id ? "outline" : "default"}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (subscription?.id) {
-                  handleSubscribe(subscription.id);
-                } else {
-                  toast.error("Invalid subscription. Please try again.");
-                }
-              }}
-              disabled={subscribing || !subscription?.id || isDeliveryAvailable === false}
-            >
-              {subscribing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Subscribing...
-                </>
-              ) : userSubscription?.subscription.id === subscription.id ? (
-                "Current Plan"
-              ) : isDeliveryAvailable === false ? (
-                "Delivery Not Available"
-              ) : (
-                "Subscribe Now"
-              )}
-            </Button>
-          </CardFooter>
-        </Card>
-      ))}
-    </div>
-  );
-
-  const renderSubscriptionTable = () => (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Plan</TableHead>
-          <TableHead>Duration</TableHead>
-          <TableHead>Price</TableHead>
-          <TableHead>Features</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Action</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {subscriptions.map((subscription) => (
-          <TableRow 
-            key={subscription.id}
-            className="cursor-pointer hover:bg-muted/50"
-            onClick={() => setSelectedSubscription(subscription)}
-          >
-            <TableCell>
-              <div className="flex items-center gap-3">
-                {subscription.image_url && (
-                  <img
-                    src={subscription.image_url}
-                    alt={subscription.name}
-                    className="w-12 h-12 rounded-lg object-cover"
-                  />
-                )}
-                <div>
-                  <div className="font-medium">{subscription.name}</div>
-                  <div className="text-sm text-muted-foreground">{subscription.description}</div>
-                </div>
-              </div>
-            </TableCell>
-            <TableCell>{subscription.duration_days} days</TableCell>
-            <TableCell>${subscription.price}</TableCell>
-            <TableCell>
-              <div className="max-w-[200px] truncate">
-                {subscription.features.join(", ")}
-              </div>
-            </TableCell>
-            <TableCell>
-              {userSubscription?.subscription.id === subscription.id ? (
-                <Badge>Current Plan</Badge>
-              ) : isDeliveryAvailable === false ? (
-                <Badge variant="destructive">Delivery Not Available</Badge>
-              ) : (
-                <Badge variant="secondary">Available</Badge>
-              )}
-            </TableCell>
-            <TableCell>
-              <Button
-                variant={userSubscription?.subscription.id === subscription.id ? "outline" : "default"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (subscription?.id) {
-                    handleSubscribe(subscription.id);
-                  } else {
-                    toast.error("Invalid subscription. Please try again.");
-                  }
-                }}
-                disabled={subscribing || !subscription?.id || isDeliveryAvailable === false}
-              >
-                {subscribing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Subscribing...
-                  </>
-                ) : userSubscription?.subscription.id === subscription.id ? (
-                  "Current Plan"
-                ) : isDeliveryAvailable === false ? (
-                  "Delivery Not Available"
-                ) : (
-                  "Subscribe Now"
-                )}
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-
-  const renderSubscriptionActions = () => {
-    if (!userSubscription) return null;
-
-    const isActive = userSubscription.status === "active";
-    const isPaused = userSubscription.status === "paused";
-
-    return (
-      <div className="flex items-center gap-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Manage Subscription
-              <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            {isActive && (
-              <>
-                <DropdownMenuItem onClick={() => setShowPauseDialog(true)}>
-                  Pause Subscription
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={async () => {
-                    try {
-                      const response = await fetch(`${API_BASE_URL}/api/subscriptions/auto-renew`, {
-                        method: "POST",
-                        headers: {
-                          "Content-Type": "application/json",
-                          Authorization: `Bearer ${session?.access_token}`,
-                        },
-                        body: JSON.stringify({
-                          auto_renew: !userSubscription.auto_renew,
-                        }),
-                      });
-
-                      if (!response.ok) throw new Error("Failed to update auto-renewal");
-
-                      const updatedSubscription = await response.json();
-                      setUserSubscription(updatedSubscription);
-                      toast.success(
-                        `Auto-renewal ${updatedSubscription.auto_renew ? "enabled" : "disabled"}`
-                      );
-                    } catch (error) {
-                      console.error("Auto-renewal update error:", error);
-                      toast.error("Failed to update auto-renewal setting");
-                    }
-                  }}
-                >
-                  {userSubscription.auto_renew ? "Disable" : "Enable"} Auto-renewal
-                </DropdownMenuItem>
-              </>
-            )}
-            {isPaused && (
-              <DropdownMenuItem onClick={handleResume}>
-                Resume Subscription
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem
-              className="text-red-600"
-              onClick={() => setShowCancelDialog(true)}
-            >
-              Cancel Subscription
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-8">
-            <h1 className="text-3xl font-medium mb-2">Subscription Plans</h1>
-            <p className="text-muted-foreground">
-              Choose a subscription plan that best fits your needs
-            </p>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+        {/* Hero Section */}
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4">Subscription Plans</h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Choose the perfect subscription plan that fits your needs. All plans include free delivery and customization options.
+          </p>
+        </div>
+
+        {/* Delivery Check */}
+        <div className="mb-8">
+          <PincodeCheck
+            onDeliveryAvailable={handleDeliveryAvailable}
+            onDeliveryUnavailable={handleDeliveryUnavailable}
+          />
+        </div>
+
+        {/* View Mode Toggle */}
+        <div className="flex justify-end mb-6">
+          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+            <Button
+              variant={viewMode === "cards" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("cards")}
+              className="h-8 px-3"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="h-8 px-3"
+            >
+              <Table className="h-4 w-4" />
+            </Button>
           </div>
+        </div>
 
-          <div className="mb-8">
-            <PincodeCheck
-              onDeliveryAvailable={handleDeliveryAvailable}
-              onDeliveryUnavailable={handleDeliveryUnavailable}
-            />
-          </div>
-
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-4">
-              <TabsTrigger value="plans">Available Plans</TabsTrigger>
-              <TabsTrigger value="current" disabled={!userSubscription}>
-                Current Plan
-              </TabsTrigger>
-              <TabsTrigger value="history" disabled={!user}>
-                History
-              </TabsTrigger>
-              <TabsTrigger value="analytics" disabled={!userSubscription}>
-                Analytics
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="plans">
-              <div className="space-y-6">
-                <div className="flex justify-center gap-4 mb-8">
-                  <Button
-                    variant={viewMode === 'cards' ? 'default' : 'outline'}
-                    onClick={() => setViewMode('cards')}
-                  >
-                    Card View
-                  </Button>
-                  <Button
-                    variant={viewMode === 'table' ? 'default' : 'outline'}
-                    onClick={() => setViewMode('table')}
-                  >
-                    Comparison View
-                  </Button>
-                </div>
-
-                {loading ? (
-                  <div className="flex justify-center items-center min-h-[400px]">
-                    <Loader2 className="h-8 w-8 animate-spin" />
-                  </div>
-                ) : (
-                  <>
-                    {viewMode === "cards" ? renderSubscriptionCards() : renderSubscriptionTable()}
-                    
-                    <SubscriptionDetailModal
-                      subscription={selectedSubscription}
-                      isOpen={!!selectedSubscription}
-                      onClose={() => setSelectedSubscription(null)}
-                      onSubscribe={handleSubscribe}
-                      isSubscribing={subscribing}
-                    />
-                  </>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="current">
-              {userSubscription && (
-                <div className="space-y-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Current Subscription</CardTitle>
-                      <CardDescription>
-                        Manage your current subscription plan and settings
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div>
-                            <h3 className="text-lg font-semibold mb-4">Plan Details</h3>
-                            <div className="space-y-4">
-                              <div>
-                                <span className="font-medium">Plan:</span>{" "}
-                                {userSubscription.subscription.name}
-                              </div>
-                              <div>
-                                <span className="font-medium">Price:</span>{" "}
-                                ${userSubscription.subscription.price}/cycle
-                              </div>
-                              <div>
-                                <span className="font-medium">Status:</span>{" "}
-                                <Badge
-                                  variant="secondary"
-                                  className={cn({
-                                    "bg-green-100 text-green-800": userSubscription.status === "active",
-                                    "bg-yellow-100 text-yellow-800": userSubscription.status === "paused",
-                                    "bg-red-100 text-red-800": userSubscription.status === "cancelled"
-                                  })}
-                                >
-                                  {userSubscription.status}
-                                </Badge>
-                              </div>
-                            </div>
+        {/* Content */}
+        <div className="space-y-8">
+          {loading ? (
+            <div className="flex justify-center items-center min-h-[400px]">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {viewMode === "cards" ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                  {subscriptions.map((subscription) => (
+                    <Card 
+                      key={subscription.id}
+                      className={cn(
+                        "cursor-pointer hover:shadow-lg transition-shadow",
+                        userSubscription?.subscription.id === subscription.id && "border-primary"
+                      )}
+                      onClick={() => setSelectedSubscription(subscription)}
+                    >
+                      <CardHeader>
+                        {subscription.image_url && (
+                          <div className="aspect-video rounded-lg overflow-hidden mb-4">
+                            <img
+                              src={subscription.image_url}
+                              alt={subscription.name}
+                              className="w-full h-full object-cover"
+                            />
                           </div>
-                          <div>
-                            <h3 className="text-lg font-semibold mb-4">Subscription Period</h3>
-                            <div className="space-y-4">
-                              <div>
-                                <span className="font-medium">Start Date:</span>{" "}
-                                {new Date(userSubscription.start_date).toLocaleDateString()}
-                              </div>
-                              <div>
-                                <span className="font-medium">End Date:</span>{" "}
-                                {new Date(userSubscription.end_date).toLocaleDateString()}
-                              </div>
-                              <div>
-                                <span className="font-medium">Auto-renewal:</span>{" "}
-                                <Badge variant="outline">
-                                  {userSubscription.auto_renew ? "Enabled" : "Disabled"}
-                                </Badge>
-                              </div>
-                            </div>
-                          </div>
+                        )}
+                        <CardTitle className="text-xl">{subscription.name}</CardTitle>
+                        <CardDescription className="text-base">{subscription.description}</CardDescription>
+                        <div className="mt-4 flex items-baseline gap-2">
+                          <span className="text-3xl font-bold">₹{subscription.price}</span>
+                          <span className="text-muted-foreground">/month</span>
                         </div>
-                        {renderSubscriptionActions()}
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardHeader>
+                      <CardContent className="flex-1">
+                        <ul className="space-y-3">
+                          {subscription.features.map((feature, index) => (
+                            <li key={index} className="flex items-center gap-2">
+                              <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                              <span className="text-sm">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                      <CardFooter>
+                        <Button
+                          className="w-full"
+                          onClick={() => handleSubscribe(subscription.id)}
+                          disabled={!isDeliveryAvailable}
+                        >
+                          {isDeliveryAvailable === null
+                            ? "Check Delivery Availability"
+                            : isDeliveryAvailable
+                            ? "Subscribe Now"
+                            : "Delivery Not Available"}
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Plan</TableHead>
+                        <TableHead className="hidden sm:table-cell">Duration</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead className="hidden md:table-cell">Features</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Action</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {subscriptions.map((subscription) => (
+                        <TableRow 
+                          key={subscription.id}
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => setSelectedSubscription(subscription)}
+                        >
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              {subscription.image_url && (
+                                <img
+                                  src={subscription.image_url}
+                                  alt={subscription.name}
+                                  className="w-12 h-12 rounded-lg object-cover"
+                                />
+                              )}
+                              <div>
+                                <div className="font-medium">{subscription.name}</div>
+                                <div className="text-sm text-muted-foreground">{subscription.description}</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden sm:table-cell">{subscription.duration_days} days</TableCell>
+                          <TableCell>₹{subscription.price}/month</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            <div className="max-w-[200px] truncate">
+                              {subscription.features.join(", ")}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {userSubscription?.subscription.id === subscription.id ? (
+                              <Badge>Current Plan</Badge>
+                            ) : isDeliveryAvailable === false ? (
+                              <Badge variant="destructive">Delivery Not Available</Badge>
+                            ) : (
+                              <Badge variant="secondary">Available</Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              size="sm"
+                              onClick={() => handleSubscribe(subscription.id)}
+                              disabled={!isDeliveryAvailable}
+                            >
+                              Subscribe
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
-            </TabsContent>
-
-            <TabsContent value="history">
-              <SubscriptionHistory
-                history={subscriptionHistory}
-                isLoading={loading}
+              
+              <SubscriptionDetailModal
+                subscription={selectedSubscription}
+                isOpen={!!selectedSubscription}
+                onClose={() => setSelectedSubscription(null)}
+                onSubscribe={handleSubscribe}
+                isSubscribing={subscribing}
               />
-            </TabsContent>
-
-            <TabsContent value="analytics">
-              {analytics && (
-                <SubscriptionAnalytics
-                  analytics={analytics}
-                  isLoading={loading}
-                />
-              )}
-            </TabsContent>
-          </Tabs>
+            </>
+          )}
         </div>
       </main>
+      <Footer />
+      <FloatingCart />
 
       {/* Pause Dialog */}
       <Dialog open={showPauseDialog} onOpenChange={setShowPauseDialog}>
@@ -907,8 +706,6 @@ const Subscription = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <Footer />
     </div>
   );
 };

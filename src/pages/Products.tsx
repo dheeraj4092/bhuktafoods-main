@@ -240,38 +240,50 @@ const ProductsPage = () => {
   }
   
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-24">
-        <div className="flex items-center justify-between mb-6 sm:mb-8">
-          <h1 className="text-xl sm:text-2xl font-semibold">Our Products</h1>
-          
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+        {/* Hero Section */}
+        <div className="text-center mb-8 sm:mb-12">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-4">Our Products</h1>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Discover our wide range of high-quality products, carefully curated for your needs.
+          </p>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
           {/* Mobile filter dialog */}
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="lg:hidden">
+              <Button variant="outline" className="lg:hidden w-full sm:w-auto">
                 <SlidersHorizontal className="h-4 w-4 mr-2" />
                 Filters
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-full sm:w-[400px]">
-              <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
-              </SheetHeader>
-              <FilterSection isMobile={true} />
+            <SheetContent side="right" className="w-full sm:w-[400px] p-0">
+              <div className="h-full flex flex-col">
+                <div className="p-6 border-b">
+                  <SheetTitle>Filters</SheetTitle>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6">
+                  <FilterSection isMobile={true} />
+                </div>
+              </div>
             </SheetContent>
           </Sheet>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Desktop filters */}
-          <div className="hidden lg:block">
-            <FilterSection />
+          <div className="hidden lg:block w-64 flex-shrink-0">
+            <div className="sticky top-6">
+              <FilterSection />
+            </div>
           </div>
 
           {/* Products grid */}
-          <div className="lg:col-span-3">
-            <CardHoverEffectDemo />
+          <div className="flex-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              <CardHoverEffectDemo />
+            </div>
           </div>
         </div>
       </main>

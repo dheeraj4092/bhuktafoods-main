@@ -1,4 +1,4 @@
-
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,9 +6,21 @@ import ProductCard from "@/components/ui/ProductCard";
 import { PRODUCTS } from "@/lib/utils";
 
 const FeaturedProductsSection = () => {
-  // Featured products (show 4 of them)
   const featuredProducts = PRODUCTS.filter(product => product.isAvailable).slice(0, 4);
-  
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const nextProduct = () => {
+    setCurrentIndex((prev) => (prev + 1) % featuredProducts.length);
+  };
+
+  const prevProduct = () => {
+    setCurrentIndex((prev) => (prev - 1 + featuredProducts.length) % featuredProducts.length);
+  };
+
+  const getAdjacentIndex = (offset: number) => {
+    return (currentIndex + offset + featuredProducts.length) % featuredProducts.length;
+  };
+
   return (
     <section className="py-16 px-6 lg:px-10">
       <div className="max-w-7xl mx-auto">
@@ -26,14 +38,52 @@ const FeaturedProductsSection = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in animate-delay-400">
-          {featuredProducts.map((product, index) => (
+        <div className="relative h-[500px] animate-fade-in animate-delay-400">
+          {/* Previous Product Preview */}
+          <div 
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[200px] opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+            onClick={prevProduct}
+          >
             <ProductCard 
-              key={product.id} 
-              {...product} 
-              className={`animate-fade-in animate-delay-${(index + 4) * 100}`}
+              {...featuredProducts[getAdjacentIndex(-1)]} 
+              className="scale-90"
             />
-          ))}
+          </div>
+
+          {/* Current Product */}
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] z-10">
+            <ProductCard 
+              {...featuredProducts[currentIndex]} 
+              className="scale-100 shadow-xl"
+            />
+          </div>
+
+          {/* Next Product Preview */}
+          <div 
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-[200px] opacity-50 hover:opacity-100 transition-opacity cursor-pointer"
+            onClick={nextProduct}
+          >
+            <ProductCard 
+              {...featuredProducts[getAdjacentIndex(1)]} 
+              className="scale-90"
+            />
+          </div>
+
+          {/* Navigation Dots */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+            {featuredProducts.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                  index === currentIndex 
+                    ? "bg-primary w-4" 
+                    : "bg-gray-300 hover:bg-gray-400"
+                }`}
+                aria-label={`Go to product ${index + 1}`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>

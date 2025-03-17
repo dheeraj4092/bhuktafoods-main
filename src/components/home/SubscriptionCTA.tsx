@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const SubscriptionCTA = () => {
   return (
     <section className="py-20 px-6 lg:px-10 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto relative z-10">
+      
         <div className="bg-white rounded-3xl p-10 md:p-16 shadow-xl border border-border">
           <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-20">
             <div className="w-full lg:w-1/2 space-y-6 animate-fade-in">
@@ -61,7 +61,7 @@ const SubscriptionCTA = () => {
               </div>
             </div>
           </div>
-        </div>
+      
       </div>
       
       {/* Background decorative elements */}

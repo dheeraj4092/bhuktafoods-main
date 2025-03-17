@@ -1,6 +1,5 @@
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { Link } from "react-router-dom";
 import { useState } from "react";
 
 export const HoverEffect = ({
@@ -19,22 +18,22 @@ export const HoverEffect = ({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 md:grid-cols-2  lg:grid-cols-3  py-10",
+        "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 py-10",
         className
       )}
     >
       {items.map((item, idx) => (
-        <Link
-          to={item?.link}
-          key={item?.link}
-          className="relative group  block p-2 h-full w-full"
+        <a
+          href={item.link}
+          key={item.link}
+          className="relative group block p-2 h-full w-full"
           onMouseEnter={() => setHoveredIndex(idx)}
           onMouseLeave={() => setHoveredIndex(null)}
         >
           <AnimatePresence>
             {hoveredIndex === idx && (
               <motion.span
-                className="absolute inset-0 h-full w-full bg-neutral-200 dark:bg-slate-800/[0.8] block  rounded-3xl"
+                className="absolute inset-0 h-full w-full bg-neutral-200 dark:bg-slate-800/[0.8] block rounded-3xl"
                 layoutId="hoverBackground"
                 initial={{ opacity: 0 }}
                 animate={{
@@ -48,17 +47,18 @@ export const HoverEffect = ({
               />
             )}
           </AnimatePresence>
+
           <Card>
             <CardTitle>{item.title}</CardTitle>
             <CardDescription>{item.description}</CardDescription>
           </Card>
-        </Link>
+        </a>
       ))}
     </div>
   );
 };
 
-export const Card = ({
+const Card = ({
   className,
   children,
 }: {
@@ -79,7 +79,7 @@ export const Card = ({
   );
 };
 
-export const CardTitle = ({
+const CardTitle = ({
   className,
   children,
 }: {
@@ -93,7 +93,7 @@ export const CardTitle = ({
   );
 };
 
-export const CardDescription = ({
+const CardDescription = ({
   className,
   children,
 }: {

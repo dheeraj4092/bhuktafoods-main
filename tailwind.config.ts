@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -120,6 +119,10 @@ export default {
 				'shimmer': {
 					'0%': { backgroundPosition: '-200% 0' },
 					'100%': { backgroundPosition: '200% 0' }
+				},
+				'scroll': {
+					from: { transform: 'translateX(0)' },
+					to: { transform: 'translateX(calc(-50% - 1rem))' }
 				}
 			},
 			animation: {
@@ -132,7 +135,8 @@ export default {
 				'scale-in': 'scale-in 0.4s ease-out',
 				'float': 'float 3s ease-in-out infinite',
 				'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
-				'shimmer': 'shimmer 2.5s infinite linear'
+				'shimmer': 'shimmer 2.5s infinite linear',
+				'scroll': 'scroll var(--animation-duration, 40s) var(--animation-direction, forwards) linear infinite'
 			}
 		}
 	},
