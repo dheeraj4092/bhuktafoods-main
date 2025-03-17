@@ -113,7 +113,7 @@ const Auth = () => {
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
       
-      <main className="flex-1 flex items-center justify-center py-12 px-6">
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 pt-24 sm:pt-28">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center">
             <h1 className="text-3xl font-medium">Welcome to Snackolicious</h1>

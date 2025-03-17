@@ -212,7 +212,7 @@ const ProductsPage = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 container py-8">
+        <main className="flex-1 container py-8 pt-24 sm:pt-28">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground">Loading products...</p>
@@ -227,7 +227,7 @@ const ProductsPage = () => {
     return (
       <div className="min-h-screen flex flex-col bg-background">
         <Header />
-        <main className="flex-1 container py-8">
+        <main className="flex-1 container py-8 pt-24 sm:pt-28">
           <div className="text-center py-12">
             <div className="text-red-500 mb-4">Error loading products</div>
             <p className="text-muted-foreground">{error}</p>
@@ -241,7 +241,7 @@ const ProductsPage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 pt-24 sm:pt-28">
         {/* Hero Section */}
         <div className="text-center mb-8 sm:mb-12">
           <h1 className="text-2xl sm:text-3xl font-bold mb-4">Our Products</h1>

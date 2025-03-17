@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -114,8 +113,7 @@ const Profile = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      
-      <main className="flex-1 py-12 px-6 lg:px-10">
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 pt-24 sm:pt-28">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-3xl font-medium">My Profile</h1>
