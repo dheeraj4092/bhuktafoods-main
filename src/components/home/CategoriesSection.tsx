@@ -6,7 +6,7 @@ const categories = [
   {
     title: "Traditional Snacks",
     description: "Authentic homemade snacks prepared with age-old family recipes.",
-    image: "https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//popular-indian-snacks-list.webp",
+    image: "https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/products//us2zzhcaon3blewi2edo.webp",
     link: "/products?category=snacks",
     colorAccent: "food-snack"
   },
@@ -20,35 +20,35 @@ const categories = [
   {
     title: "Veg Pickles",
     description: "Traditional homemade vegetarian pickles.",
-    image: "https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop",
+    image: "https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/products//rezb8aztwtze6dbnq7so.webp",
     link: "/products?category=pickles-veg",
     colorAccent: "green"
   },
   {
     title: "Non-Veg Pickles",
     description: "Authentic non-vegetarian pickles.",
-    image: "https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop",
+    image: "https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//chicken-bone-pickle-1-scaled.jpg.webp",
     link: "/products?category=pickles-nonveg",
     colorAccent: "red"
   },
   {
     title: "Sweets",
     description: "Traditional Indian sweets and desserts.",
-    image: "https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop",
+    image: "https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/products//f0rz9cmyjwyfeevtdfr5.webp",
     link: "/products?category=sweets",
     colorAccent: "yellow"
   },
   {
     title: "Instant Pre-mix",
     description: "Ready-to-cook instant mixes.",
-    image: "https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop",
+    image: "https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//pulihora_paste_1080x.jpg.webp",
     link: "/products?category=instant-premix",
     colorAccent: "blue"
   },
   {
     title: "Podi",
     description: "Traditional spice powders and podis.",
-    image: "https://images.unsplash.com/photo-1564093497595-593b96d80180?q=80&w=2743&auto=format&fit=crop",
+    image: "https://topikrqamdglxakppbyg.supabase.co/storage/v1/object/public/product-images//AB59724C-42CC-4A59-AD2F-2A9C7A071402.png",
     link: "/products?category=podi",
     colorAccent: "purple"
   }

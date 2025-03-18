@@ -455,183 +455,185 @@ const Subscription = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Header />
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-8 sm:mb-12">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-4">Subscription Plans</h1>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Choose the perfect subscription plan that fits your needs. All plans include free delivery and customization options.
-          </p>
-        </div>
-
-        {/* Delivery Check */}
-        <div className="mb-8">
-          <PincodeCheck
-            onDeliveryAvailable={handleDeliveryAvailable}
-            onDeliveryUnavailable={handleDeliveryUnavailable}
-          />
-        </div>
-
-        {/* View Mode Toggle */}
-        <div className="flex justify-end mb-6">
-          <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
-            <Button
-              variant={viewMode === "cards" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className="h-8 px-3"
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === "table" ? "secondary" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className="h-8 px-3"
-            >
-              <Table className="h-4 w-4" />
-            </Button>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12 pt-24 sm:pt-28">
+        <div className="max-w-7xl mx-auto">
+          {/* Hero Section */}
+          <div className="text-center mb-8 sm:mb-12">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-4">Subscription Plans</h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Choose the perfect subscription plan that fits your needs. All plans include free delivery and customization options.
+            </p>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="space-y-8">
-          {loading ? (
-            <div className="flex justify-center items-center min-h-[400px]">
-              <Loader2 className="h-8 w-8 animate-spin" />
+          {/* Delivery Check */}
+          <div className="mb-8">
+            <PincodeCheck
+              onDeliveryAvailable={handleDeliveryAvailable}
+              onDeliveryUnavailable={handleDeliveryUnavailable}
+            />
+          </div>
+
+          {/* View Mode Toggle */}
+          <div className="flex justify-end mb-6">
+            <div className="flex items-center gap-2 bg-muted p-1 rounded-lg">
+              <Button
+                variant={viewMode === "cards" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("cards")}
+                className="h-8 px-3"
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setViewMode("table")}
+                className="h-8 px-3"
+              >
+                <Table className="h-4 w-4" />
+              </Button>
             </div>
-          ) : (
-            <>
-              {viewMode === "cards" ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                  {subscriptions.map((subscription) => (
-                    <Card 
-                      key={subscription.id}
-                      className={cn(
-                        "cursor-pointer hover:shadow-lg transition-shadow",
-                        userSubscription?.subscription.id === subscription.id && "border-primary"
-                      )}
-                      onClick={() => setSelectedSubscription(subscription)}
-                    >
-                      <CardHeader>
-                        {subscription.image_url && (
-                          <div className="aspect-video rounded-lg overflow-hidden mb-4">
-                            <img
-                              src={subscription.image_url}
-                              alt={subscription.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
+          </div>
+
+          {/* Content */}
+          <div className="space-y-8">
+            {loading ? (
+              <div className="flex justify-center items-center min-h-[400px]">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <>
+                {viewMode === "cards" ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                    {subscriptions.map((subscription) => (
+                      <Card 
+                        key={subscription.id}
+                        className={cn(
+                          "cursor-pointer hover:shadow-lg transition-shadow",
+                          userSubscription?.subscription.id === subscription.id && "border-primary"
                         )}
-                        <CardTitle className="text-xl">{subscription.name}</CardTitle>
-                        <CardDescription className="text-base">{subscription.description}</CardDescription>
-                        <div className="mt-4 flex items-baseline gap-2">
-                          <span className="text-3xl font-bold">₹{subscription.price}</span>
-                          <span className="text-muted-foreground">/month</span>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="flex-1">
-                        <ul className="space-y-3">
-                          {subscription.features.map((feature, index) => (
-                            <li key={index} className="flex items-center gap-2">
-                              <Check className="h-4 w-4 text-primary flex-shrink-0" />
-                              <span className="text-sm">{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </CardContent>
-                      <CardFooter>
-                        <Button
-                          className="w-full"
-                          onClick={() => handleSubscribe(subscription.id)}
-                          disabled={!isDeliveryAvailable}
-                        >
-                          {isDeliveryAvailable === null
-                            ? "Check Delivery Availability"
-                            : isDeliveryAvailable
-                            ? "Subscribe Now"
-                            : "Delivery Not Available"}
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Plan</TableHead>
-                        <TableHead className="hidden sm:table-cell">Duration</TableHead>
-                        <TableHead>Price</TableHead>
-                        <TableHead className="hidden md:table-cell">Features</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Action</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {subscriptions.map((subscription) => (
-                        <TableRow 
-                          key={subscription.id}
-                          className="cursor-pointer hover:bg-muted/50"
-                          onClick={() => setSelectedSubscription(subscription)}
-                        >
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              {subscription.image_url && (
-                                <img
-                                  src={subscription.image_url}
-                                  alt={subscription.name}
-                                  className="w-12 h-12 rounded-lg object-cover"
-                                />
-                              )}
-                              <div>
-                                <div className="font-medium">{subscription.name}</div>
-                                <div className="text-sm text-muted-foreground">{subscription.description}</div>
-                              </div>
+                        onClick={() => setSelectedSubscription(subscription)}
+                      >
+                        <CardHeader>
+                          {subscription.image_url && (
+                            <div className="aspect-video rounded-lg overflow-hidden mb-4">
+                              <img
+                                src={subscription.image_url}
+                                alt={subscription.name}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">{subscription.duration_days} days</TableCell>
-                          <TableCell>₹{subscription.price}/month</TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            <div className="max-w-[200px] truncate">
-                              {subscription.features.join(", ")}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {userSubscription?.subscription.id === subscription.id ? (
-                              <Badge>Current Plan</Badge>
-                            ) : isDeliveryAvailable === false ? (
-                              <Badge variant="destructive">Delivery Not Available</Badge>
-                            ) : (
-                              <Badge variant="secondary">Available</Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Button
-                              size="sm"
-                              onClick={() => handleSubscribe(subscription.id)}
-                              disabled={!isDeliveryAvailable}
-                            >
-                              Subscribe
-                            </Button>
-                          </TableCell>
+                          )}
+                          <CardTitle className="text-xl">{subscription.name}</CardTitle>
+                          <CardDescription className="text-base">{subscription.description}</CardDescription>
+                          <div className="mt-4 flex items-baseline gap-2">
+                            <span className="text-3xl font-bold">₹{subscription.price}</span>
+                            <span className="text-muted-foreground">/month</span>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="flex-1">
+                          <ul className="space-y-3">
+                            {subscription.features.map((feature, index) => (
+                              <li key={index} className="flex items-center gap-2">
+                                <Check className="h-4 w-4 text-primary flex-shrink-0" />
+                                <span className="text-sm">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </CardContent>
+                        <CardFooter>
+                          <Button
+                            className="w-full"
+                            onClick={() => handleSubscribe(subscription.id)}
+                            disabled={!isDeliveryAvailable}
+                          >
+                            {isDeliveryAvailable === null
+                              ? "Check Delivery Availability"
+                              : isDeliveryAvailable
+                              ? "Subscribe Now"
+                              : "Delivery Not Available"}
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Plan</TableHead>
+                          <TableHead className="hidden sm:table-cell">Duration</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead className="hidden md:table-cell">Features</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Action</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-              
-              <SubscriptionDetailModal
-                subscription={selectedSubscription}
-                isOpen={!!selectedSubscription}
-                onClose={() => setSelectedSubscription(null)}
-                onSubscribe={handleSubscribe}
-                isSubscribing={subscribing}
-              />
-            </>
-          )}
+                      </TableHeader>
+                      <TableBody>
+                        {subscriptions.map((subscription) => (
+                          <TableRow 
+                            key={subscription.id}
+                            className="cursor-pointer hover:bg-muted/50"
+                            onClick={() => setSelectedSubscription(subscription)}
+                          >
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                {subscription.image_url && (
+                                  <img
+                                    src={subscription.image_url}
+                                    alt={subscription.name}
+                                    className="w-12 h-12 rounded-lg object-cover"
+                                  />
+                                )}
+                                <div>
+                                  <div className="font-medium">{subscription.name}</div>
+                                  <div className="text-sm text-muted-foreground">{subscription.description}</div>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">{subscription.duration_days} days</TableCell>
+                            <TableCell>₹{subscription.price}/month</TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              <div className="max-w-[200px] truncate">
+                                {subscription.features.join(", ")}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {userSubscription?.subscription.id === subscription.id ? (
+                                <Badge>Current Plan</Badge>
+                              ) : isDeliveryAvailable === false ? (
+                                <Badge variant="destructive">Delivery Not Available</Badge>
+                              ) : (
+                                <Badge variant="secondary">Available</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                size="sm"
+                                onClick={() => handleSubscribe(subscription.id)}
+                                disabled={!isDeliveryAvailable}
+                              >
+                                Subscribe
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+                
+                <SubscriptionDetailModal
+                  subscription={selectedSubscription}
+                  isOpen={!!selectedSubscription}
+                  onClose={() => setSelectedSubscription(null)}
+                  onSubscribe={handleSubscribe}
+                  isSubscribing={subscribing}
+                />
+              </>
+            )}
+          </div>
         </div>
       </main>
       <Footer />
