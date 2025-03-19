@@ -20,50 +20,8 @@ const InstagramFeedSection = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 animate-fade-in animate-delay-400">
-          <div className="aspect-square rounded-xl overflow-hidden image-hover">
-            <img 
-              src="https://images.unsplash.com/photo-1554502078-ef0fc409efce?q=80&w=3084&auto=format&fit=crop" 
-              alt="Instagram post" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="aspect-square rounded-xl overflow-hidden image-hover">
-            <img 
-              src="https://images.unsplash.com/photo-1559181567-c3190ca9959b?q=80&w=3087&auto=format&fit=crop" 
-              alt="Instagram post" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="aspect-square rounded-xl overflow-hidden image-hover">
-            <img 
-              src="https://images.unsplash.com/photo-1599785209707-a456fc1337bb?q=80&w=3086&auto=format&fit=crop" 
-              alt="Instagram post" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="aspect-square rounded-xl overflow-hidden image-hover">
-            <img 
-              src="https://images.unsplash.com/photo-1610834572594-73b81165b5c2?q=80&w=3087&auto=format&fit=crop" 
-              alt="Instagram post" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="aspect-square rounded-xl overflow-hidden image-hover">
-            <img 
-              src="https://images.unsplash.com/photo-1609167830220-7164aa360951?q=80&w=2940&auto=format&fit=crop" 
-              alt="Instagram post" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="aspect-square rounded-xl overflow-hidden image-hover">
-            <img 
-              src="https://images.unsplash.com/photo-1528825871115-3581a5387919?q=80&w=2930&auto=format&fit=crop" 
-              alt="Instagram post" 
-              className="w-full h-full object-cover"
-            />
-          </div>
-        </div>
+        
+        
       </div>
     </section>
   );

@@ -10,7 +10,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
           <div className="space-y-3">
             <h3 className="text-base sm:text-lg font-semibold bg-gradient-to-r from-food-accent to-primary bg-clip-text text-transparent">
-              snackolicious
+              Bhukta Foods 
             </h3>
             <p className="text-sm text-muted-foreground max-w-xs">
               Crafting authentic traditional snacks and fresh foods, delivered to your doorstep with care.
@@ -72,6 +72,7 @@ const Footer = () => {
                   Subscriptions
                 </Link>
               </li>
+              
             </ul>
           </div>
           
@@ -100,16 +101,16 @@ const Footer = () => {
             <h4 className="text-sm font-medium">Contact</h4>
             <div className="space-y-1.5">
               <a 
-                href="https://wa.me/1234567890" 
+                href="https://wa.me/7680965144" 
                 className="text-sm text-primary hover:text-food-accent font-medium transition-colors block"
                 title="WhatsApp"
               >
-                WhatsApp: +123 456 7890
+                WhatsApp: +91 7680965144
               </a>
               <p className="text-sm text-muted-foreground">
-                Monday to Saturday
+                Monday to Sunday 
                 <br />
-                9:00 AM - 6:00 PM IST
+                9:00 AM - 9:00 PM IST
               </p>
             </div>
           </div>
@@ -117,7 +118,7 @@ const Footer = () => {
         
         <div className="mt-8 sm:mt-10 pt-6 sm:pt-8 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-3">
           <p className="text-sm text-muted-foreground">
-            © {currentYear} snackolicious. All rights reserved.
+            © {currentYear} Bhukta Foods. All rights reserved.
           </p>
           <div className="flex items-center space-x-4 sm:space-x-6">
             <a className="text-xs text-muted-foreground hover:text-primary transition-colors" href="#">

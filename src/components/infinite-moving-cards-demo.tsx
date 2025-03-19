@@ -18,31 +18,31 @@ export default function InfiniteMovingCardsDemo() {
 const testimonials = [
   {
     quote:
-      "The traditional snacks from Bhukta Foods are absolutely delicious! The quality and authenticity of flavors bring back childhood memories. Their packaging is also very elegant and keeps the snacks fresh.",
-    name: "Priya Sharma",
+      "The Karam Billalu are absolutely addictive! Perfectly crispy and packed with just the right amount of spice. They remind me of homemade snacks from my childhood.",
+    name: "Kranthi Dev",
     title: "Regular Customer",
   },
   {
     quote:
-      "I love their fresh food section. The daily prepared meals are healthy, nutritious, and taste amazing. The subscription service is very convenient for working professionals like me.",
-    name: "Rahul Verma",
-    title: "Subscription Member",
+      "Sakinalu from Bhukta Foods are as authentic as it gets! The crunch and subtle sesame flavor bring back nostalgic memories of festive celebrations.",
+    name: "Mani Teja",
+    title: "Regular Customer",
   },
   {
-    quote: "Their pickles are simply outstanding! The variety of both veg and non-veg pickles is impressive. The authentic recipes make them stand out.",
-    name: "Anjali Patel",
-    title: "Food Enthusiast",
-  },
-  {
-    quote:
-      "The sweets collection is divine! Each piece is crafted with perfection. Their quality control is excellent, and the prices are very reasonable for the quality offered.",
-    name: "Amit Kumar",
-    title: "Sweet Lover",
+    quote: "Murukulu has always been my favorite, and their version is spot on! Super crunchy, lightly spiced, and just melts in the mouth. A must-try!",
+    name: "Satish Chandra",
+    title: "Regular Customer",
   },
   {
     quote:
-      "The instant pre-mix products are a lifesaver! They make cooking traditional dishes so much easier without compromising on taste. The instructions are clear and easy to follow.",
-    name: "Neha Singh",
-    title: "Home Chef",
+      "Masala Kaju is my go-to snack now! The spice blend is absolutely perfect—not too overpowering, just the right kick of flavor. Great for tea-time munching.",
+    name: "Dheeraj Kumar",
+    title: "Hot Lover",
+  },
+  {
+    quote:
+      "I ordered these snacks for a family gathering, and everyone loved them! Fresh, crispy, and perfectly seasoned. Will definitely be ordering again.",
+    name: "Sharath Chandra",
+    title: "Regular Customer",
   },
 ]; 

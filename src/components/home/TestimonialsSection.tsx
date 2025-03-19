@@ -21,12 +21,12 @@ const TestimonialsSection = () => {
                 />
               </div>
               <div>
-                <h4 className="font-medium">Priya Sharma</h4>
-                <p className="text-xs text-muted-foreground">Bangalore</p>
+                <h4 className="font-medium">Kranthi Dev</h4>
+                <p className="text-xs text-muted-foreground">Hyderabad</p>
               </div>
             </div>
             <p className="italic text-muted-foreground">
-              "The chakli and besan ladoo remind me of the ones my grandmother used to make. Authentic taste and quick delivery!"
+              "The Karam Billalu are absolutely addictive! Perfectly crispy and packed with just the right amount of spice. They remind me of homemade snacks from my childhood."
             </p>
             <div className="flex mt-4">
               <span className="text-food-snack">★★★★★</span>
@@ -43,12 +43,12 @@ const TestimonialsSection = () => {
                 />
               </div>
               <div>
-                <h4 className="font-medium">Raj Patel</h4>
+                <h4 className="font-medium">Mani Teja</h4>
                 <p className="text-xs text-muted-foreground">Mumbai</p>
               </div>
             </div>
             <p className="italic text-muted-foreground">
-              "I subscribed to the weekly fresh fruit bowl and overnight oats. Perfect for my busy schedule and health goals!"
+               "Sakinalu from Bhukta Foods are as authentic as it gets! The crunch and subtle sesame flavor bring back nostalgic memories of festive celebrations."
             </p>
             <div className="flex mt-4">
               <span className="text-food-fresh">★★★★★</span>
@@ -65,12 +65,12 @@ const TestimonialsSection = () => {
                 />
               </div>
               <div>
-                <h4 className="font-medium">Ananya Gupta</h4>
-                <p className="text-xs text-muted-foreground">Delhi</p>
+                <h4 className="font-medium">Satish Chandra</h4>
+                <p className="text-xs text-muted-foreground">Hyderabad</p>
               </div>
             </div>
             <p className="italic text-muted-foreground">
-              "Sent a traditional snacks box to my parents in Chennai. They loved it! The WhatsApp updates on delivery were very helpful."
+              "Murukulu has always been my favorite, and their version is spot on! Super crunchy, lightly spiced, and just melts in the mouth. A must-try!"
             </p>
             <div className="flex mt-4">
               <span className="text-food-accent">★★★★★</span>
