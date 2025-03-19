@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Truck, AlertTriangle, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -24,6 +24,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 const ProductDetail = () => {
   const { productId } = useParams();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedQuantity, setSelectedQuantity] = useState<"250g" | "500g" | "1Kg">("250g");
   const [product, setProduct] = useState(null);
@@ -84,22 +85,46 @@ const ProductDetail = () => {
   const handleAddToCart = () => {
     if (!product) return;
     
-    addItem({
-      id: `${product.id}-${Date.now()}`,
-      productId: product.id,
-      name: product.name,
-      price: calculatePrice(selectedQuantity),
-      basePrice: product.price,
-      image: getProductImageUrl(product.image_url || product.image),
-      quantity,
-      quantityUnit: selectedQuantity,
-      category: product.category,
-    });
-    
-    toast({
-      title: "Added to cart",
-      description: `${quantity} × ${product.name} (${selectedQuantity}) added to your cart`,
-    });
+    try {
+      addItem({
+        id: `${product.id}-${Date.now()}`,
+        productId: product.id,
+        name: product.name,
+        price: calculatePrice(selectedQuantity),
+        basePrice: product.price,
+        image: getProductImageUrl(product.image_url || product.image),
+        quantity,
+        quantityUnit: selectedQuantity,
+        category: product.category,
+      });
+      
+      toast({
+        title: "Added to cart",
+        description: `${quantity} × ${product.name} (${selectedQuantity}) added to your cart`,
+      });
+    } catch (error: any) {
+      if (error.message === "Please log in to add items to cart") {
+        toast({
+          title: "Login required",
+          description: "Please log in to add items to your cart.",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/auth", { state: { from: window.location.pathname } })}
+            >
+              Log In
+            </Button>
+          ),
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add item to cart. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
   };
   
   const incrementQuantity = () => setQuantity(prev => prev + 1);

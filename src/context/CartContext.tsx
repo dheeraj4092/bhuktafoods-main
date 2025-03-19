@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useEffect, ReactNode } from "react";
 import { CartItem } from "@/lib/utils";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "@/context/AuthContext";
 
 // Add API base URL from environment variable
 const API_BASE_URL = import.meta.env.VITE_API_URL;
@@ -97,7 +97,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     error: null,
   });
 
-  const { session } = useAuth();
+  const { user, session } = useAuth();
 
   // Calculate totals
   const totalPrice = state.items.reduce(
@@ -127,7 +127,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   );
 
   const loadCartFromBackend = async () => {
-    if (!session?.access_token) {
+    if (!user) {
       dispatch({ type: "SET_CART", payload: [] });
       return;
     }
@@ -136,7 +136,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/cart`, {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
         },
       });
 
@@ -203,10 +203,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   // Load cart when session changes
   useEffect(() => {
     loadCartFromBackend();
-  }, [session?.access_token]);
+  }, [user, session]);
 
   const syncWithBackend = async (action: CartAction) => {
-    if (!session?.access_token) {
+    if (!user) {
       dispatch({ 
         type: "SET_ERROR", 
         payload: "Please log in to manage your cart" 
@@ -221,7 +221,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       let endpoint = `${API_BASE_URL}/api/cart`;
       let options: RequestInit = {
         headers: {
-          Authorization: `Bearer ${session.access_token}`,
+          Authorization: `Bearer ${session?.access_token}`,
           "Content-Type": "application/json",
         },
       };
@@ -337,6 +337,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const addItem = async (item: CartItem) => {
+    if (!user) {
+      throw new Error("Please log in to add items to cart");
+    }
     try {
       await syncWithBackend({ type: "ADD_ITEM", payload: item });
     } catch (error) {

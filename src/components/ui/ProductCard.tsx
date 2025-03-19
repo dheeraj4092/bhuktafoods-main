@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plus, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
@@ -55,6 +55,7 @@ const ProductCard = ({
   const [showSuccess, setShowSuccess] = useState(false);
   const [selectedQuantity, setSelectedQuantity] = useState<"250g" | "500g" | "1Kg">("250g");
   const { addItem, items } = useCart();
+  const navigate = useNavigate();
   
   // Initialize product state with props
   const [product, setProduct] = useState({
@@ -139,7 +140,7 @@ const ProductCard = ({
         quantity: 1,
         quantityUnit: selectedQuantity,
         category: product.category as "snacks" | "fresh",
-        image: product.image_url || product.image // Use image_url if available, otherwise fall back to image
+        image: product.image_url || product.image
       });
       
       toast({
@@ -152,13 +153,29 @@ const ProductCard = ({
       setTimeout(() => {
         setShowSuccess(false);
       }, 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding to cart:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add item to cart. Please try again.",
-        variant: "destructive",
-      });
+      if (error.message === "Please log in to add items to cart") {
+        toast({
+          title: "Login required",
+          description: "Please log in to add items to your cart.",
+          action: (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/auth", { state: { from: window.location.pathname } })}
+            >
+              Log In
+            </Button>
+          ),
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add item to cart. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsAdding(false);
     }
