@@ -250,6 +250,26 @@ const ProductsPage = () => {
           </p>
         </div>
 
+        {/* Mobile Category Tabs */}
+        <div className="lg:hidden mb-6">
+          <div className="flex overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+            {["all", "snacks", "fresh", "pickles-veg", "pickles-nonveg", "sweets", "instant-premix", "podi"].map((category) => (
+              <button
+                key={category}
+                onClick={() => updateFilter("category", category)}
+                className={cn(
+                  "flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap mr-2",
+                  activeFilters.category === category
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80"
+                )}
+              >
+                {category === "all" ? "All Products" : category.replace("-", " ")}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Filters and Products Grid */}
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Desktop Filters */}
